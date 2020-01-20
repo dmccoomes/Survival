@@ -1,0 +1,48 @@
+---
+title: "Survival Analysis HW 1"
+author: "David Coomes"
+date: "Due 1/23/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##Problem 1.
+
+(a) Individual A is administratively censored at age 60 (30 years after the beginning of the study).
+
+(b) Individual B is not censored - they are diagnosed with the outcome of interest at age 55.
+ 
+(c) Individual C is right censored at age 61 due to death.
+
+(d) Individual D is right censored at 56 due to loss to follow up.
+
+If we were interested in studying the time from enrollment into study until onset of breast cancer instead of age at onset, my answers for these individuals would be the same. That is because this change would make a difference in the truncation of data rather than the censoring of the data. When looking at age of onset, the data set is truncated not the individuals. We may be missing some individuals who would have been diagnosed with breast cancer before they could be enrolled in the study, and they may have been younger on average than those in the study. But, if we are studying time from enrollment in the study, then there would be no left truncation. 
+
+
+<br>
+<br>
+
+
+##Problem 2.
+
+(a) This data set is impacted by truncation. By sampling a set of current Crohn's disease patients at a specific time, we are more likely to sample those individuals who will have a longer period between diagnosis of disease and the outcome of interest. For sensoring, if we are able to follow all recruited patients for 10 years, and there is no loss to follow up, then we will likely have some administrative censoring at the end of the study. If, by some chance, all those who were selected had the outcome, then there would be no censoring.
+
+
+<!-- not sure this is correct -->
+(b) I do not necessarily agree with this statement. If A and T are totally independent, then I would agree that the observed ages at diagnosis are not affected by selection bias. But if there is an association between these two, then I may say that there is some selection bias on age.
+
+
+
+<br>
+<br>
+
+##Problem 3.
+
+
+
