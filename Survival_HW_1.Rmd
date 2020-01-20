@@ -46,3 +46,31 @@ If we were interested in studying the time from enrollment into study until onse
 
 
 
+
+
+<br>
+<br>
+
+
+
+##Problem 4. 
+
+```{r load_packages}
+
+
+```
+
+
+```{r read_data}
+
+link = "https://github.com/dmccoomes/Survival/raw/master/addicts.csv"
+adix <- read.csv(link)
+View(adix)
+
+```
+
+
+
+
+
+
