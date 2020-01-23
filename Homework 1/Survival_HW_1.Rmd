@@ -3,49 +3,60 @@ title: "Survival Analysis HW 1"
 author: "David Coomes"
 date: "Due 1/23/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning= FALSE, eval=FALSE)
 ```
 
 
-##Problem 1.
+### Problem 1
 
-(a) Individual A is administratively censored at age 60 (30 years after the beginning of the study).
+(a) Individual A is administratively (right) censored at age 60 (30 years after the beginning of the study), and contributes 30 years to left truncation.
 
-(b) Individual B is not censored - they are diagnosed with the outcome of interest at age 55.
+(b) Individual B experiences interval censoring from the time they developed breast cancer after the fourth exam until they were diagnosed with breast cancer at the fifth exam. They contribute 40 years to left truncation in this study. 
  
-(c) Individual C is right censored at age 61 due to death.
+(c) Individual C is right censored at age 61 due to death, and they contribute 50 years to left truncation.
 
-(d) Individual D is right censored at 56 due to loss to follow up.
+(d) Individual D is right censored at age 54 (the time of their last clinical exam) due to loss to follow up. They contribute 42 years to left truncation. 
 
-If we were interested in studying the time from enrollment into study until onset of breast cancer instead of age at onset, my answers for these individuals would be the same. That is because this change would make a difference in the truncation of data rather than the censoring of the data. When looking at age of onset, the data set is truncated not the individuals. We may be missing some individuals who would have been diagnosed with breast cancer before they could be enrolled in the study, and they may have been younger on average than those in the study. But, if we are studying time from enrollment in the study, then there would be no left truncation. 
+If we were interested in studying the time from enrollment into study until onset of breast cancer instead of age at onset, this would change my answers to when each individual contributes to left truncation, but it would not change the answers to when they were censored. In that case (time from enrollment), there would be no left truncation present. 
 
 
 <br>
 <br>
 
 
-##Problem 2.
+### Problem 2
 
-(a) This data set is impacted by truncation. By sampling a set of current Crohn's disease patients at a specific time, we are more likely to sample those individuals who will have a longer period between diagnosis of disease and the outcome of interest. For sensoring, if we are able to follow all recruited patients for 10 years, and there is no loss to follow up, then we will likely have some administrative censoring at the end of the study. If, by some chance, all those who were selected had the outcome, then there would be no censoring.
+(a) This data set is affected by left truncation. By sampling a set of current Crohn's disease patients at a specific time, we are more likely to sample those individuals who will have a longer period between diagnosis of disease and the outcome of interest. For censoring, if we are able to follow all recruited patients for 10 years, and there is no loss to follow up, then we will likely have some administrative censoring at the end of the study. If, by some chance, all those who were selected had the outcome, then there would be no censoring.
 
 
 <!-- not sure this is correct -->
-(b) I do not necessarily agree with this statement. If A and T are totally independent, then I would agree that the observed ages at diagnosis are not affected by selection bias. But if there is an association between these two, then I may say that there is some selection bias on age.
+(b) I do not necessarily agree with this statement. If A and T are totally independent, then I would agree that the observed ages at diagnosis are not affected by selection bias. But, if there is an association between these two, then I would argue that there is some selection bias on age.
 
 
 
 <br>
 <br>
 
-##Problem 3.
+### Problem 3
 
+(a) The study population was 312 primary biliary cirrhosis patients enrolled in two RCTs at the Mayo Clinic. 
 
+(b) The initiating event was the date the patient was determined eligible for the clinical trials.
 
+(c) The terminating event was death from any cause.
+
+(d) The time scale for this study was in months.
+
+(e) The causes of censoring were loss to follow up, liver transplant, and end of the study.
+
+(f) The end of the study was not likely related to the outcome in this study. It's difficult to know whether loss to follow up is related to death, but I can't think of a strong reason why it would be so in this case. Liver transplantation may be related to the outcome because those that were worse off (closer to dying) may have been more likely to receive a transplant, but it is difficult to know without knowing the rules regarding transplant priority.
+
+(g) For those in the 'Low' category, approximately 15% die within the first five years. This number is almost 50% for those in the 'Medium' category, and about 80% for those in the 'High' category.
 
 
 <br>
@@ -53,21 +64,109 @@ If we were interested in studying the time from enrollment into study until onse
 
 
 
-##Problem 4. 
+### Problem 4 
 
 ```{r load_packages}
 
+library(survival)
+#install.packages("numDeriv")
+#install.packages("flexsurv")
+#install.packages(("msm"))
+library(numDeriv)
+library(flexsurv)
+library(msm)
 
 ```
 
 
 ```{r read_data}
 
-link = "https://github.com/dmccoomes/Survival/raw/master/addicts.csv"
+link = "https://github.com/dmccoomes/Survival/raw/master/Homework%201/addicts.csv"
 adix <- read.csv(link)
 View(adix)
+head(adix, n=10)
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Quiz%20section/fitparametric.R"
+source(link)
 
 ```
+
+
+
+```{r fit_surv}
+
+surv.adix <- Surv(time=adix$time, event=adix$event, type="right")
+survfit.adix <- survfit(surv.adix ~ 1, data=adix, conf.type = "log-log")
+
+
+```
+
+
+```{r basic_stats}
+
+mean(adix$time)
+median(adix$time)
+
+1 - mean(adix$event)
+
+```
+
+(a) The mean follow up time was 402.6 days and the median follow up time was 367.5 days. The proportion of censored individuals was 37.0%.
+
+```{r parametric_fit}
+
+#Exponential
+model.exp <- fitparametric(surv.adix, dist="exp")
+
+#Weibull
+model.weibull <- fitparametric(surv.adix, dist="weibull")
+
+#Generalized Gamma
+model.gengamma <- fitparametric(surv.adix, dist="gengamma")
+
+
+
+```
+
+(b) 
+
+
+Model                    Parameter      Estimate       95% Lower      95% Upper    Maximum loglikelihood
+-----                    -----------    -----------    ----------     ----------   -----------------------
+Exponential              $\lambda$      0.00157        0.00132        0.00182      -1118.93
+Weibull                  $\lambda$      0.00162        0.00141        0.00183      -1114.92
+                         $P$            1.226          1.060          1.392         
+Generalized Gamma        $\mu$          6.550          6.269          6.831        -1114.36
+                         $\Sigma$       0.660          0.326          0.993        
+                         $Q$            1.468          0.385          2.552     
+
+
+
+(c) 
+
+```{r survival_plot, echo=TRUE}
+
+plot(survfit.adix, conf.int=FALSE, xlab="Time (in days)",
+     ylab="Survival probability", col="black", lty="solid", lwd=2) ##nonparametric
+lines(model.exp$fit, ci=FALSE, col="darkgreen", lty="solid", lwd=2)
+lines(model.weibull$fit, ci=FALSE, col="orange", lty="dashed", lwd=2)
+lines(model.gengamma$fit, ci=FALSE, col="blue", lty="dotted", lwd=2)
+legend("topright",
+      c("nonparametric estimator", "exponential", "Weibull", "generalized gamma"),
+      col=c("black", "darkgreen", "orange", "blue"),
+      lty=c("solid", "solid", "dashed", "dotted"), lwd=rep(3,4), cex=0.9)
+
+```
+
+
+
+
+
+
+
+
+
+
 
 
 
