@@ -3,14 +3,16 @@ title: "Survival Analysis HW 1"
 author: "David Coomes"
 date: "Due 1/23/2020"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning= FALSE, eval=FALSE)
+knitr::opts_chunk$set(include=FALSE, echo = FALSE, warning= FALSE)
 ```
 
+<br>
+<br>
 
 ### Problem 1
 
@@ -83,7 +85,7 @@ library(msm)
 
 link = "https://github.com/dmccoomes/Survival/raw/master/Homework%201/addicts.csv"
 adix <- read.csv(link)
-View(adix)
+#View(adix)
 head(adix, n=10)
 
 link = "https://github.com/dmccoomes/Survival/raw/master/Quiz%20section/fitparametric.R"
@@ -142,9 +144,9 @@ Generalized Gamma        $\mu$          6.550          6.269          6.831     
 
 
 
-(c) 
+(c) The exponential model does not fit the data particularly well. It is off by close to 10% at times, and perhaps even more towards the end of the study. The Weibull and the generalized gamma both fit the data fairly well. They seem to only be off from the nonparametric estimator by a few percentage points, and maybe as much as 5% towards the end of the study. The generalized gamma (unsurprisingly) seems to fit the data slightly better, however, it is difficult to tell just by looking at the curves.
 
-```{r survival_plot, echo=TRUE}
+```{r survival_plot, echo=FALSE, include=TRUE}
 
 plot(survfit.adix, conf.int=FALSE, xlab="Time (in days)",
      ylab="Survival probability", col="black", lty="solid", lwd=2) ##nonparametric
@@ -159,11 +161,129 @@ legend("topright",
 ```
 
 
+(d) The Weibull model is an appropriate simplification of the generalized gamma model in this example. By comparing the two models using a Likelihood Ratio Test, we get a p-value of 0.29 which does not allow us to reject our null hypothesis that these two models are the same. 
+
+```{r test}
+
+LRT.stat <- 2*(model.gengamma$loglik - model.weibull$loglik)
+LRT.stat
+
+LRT.pval <- 1- pchisq(LRT.stat, df=1)
+LRT.pval
+
+```
+
+
+(e)
+
+  i. The median time until exit is 68.99 [95% CI: 58.56-79.42] days
+  ii. The probability that no exit will occur by one year is 59.15% [95% CI: 53.76-64.54]
+  iii. The probability that no exit will occur by two years given that no exit has occurred by one year is 49.48% [95% CI:42.22-56.74]
+  
+  
+```{r weibull_model}
+
+#Median time
+fitparametric(surv.adix, dist="weibull", feature="quantile", pi=0.50)
+
+#probability that no event will occur
+fitparametric(surv.adix, dist="weibull", feature="survival", t=365)
+
+fitparametric(surv.adix, dist="weibull", feature="condsurvival", t=365*2, t0=365)
+
+```
+
+
+(f) The exponential model is not an appropriate simplification of the Weibull model. Using a Likelihood Ratio Test to compare the two models we get a p-value of 0.0046, allowing us to reject the null hypothesis that these models are the same.
+
+```{r}
+
+LRT.stat.4f <- 2*(model.weibull$loglik - model.exp$loglik)
+LRT.stat.4f
+
+LRT.pval.4f <- 1 - pchisq(LRT.stat.4f, df=1)
+LRT.pval.4f
+
+```
+
+(g) Lambda for clinic 1 = 0.00205 [95% CI:0.00168-0.00241]
+    Lambda for clinic 2 = 0.00077 [95% CI:0.00049-0.00106]
+    
+By comparing these two models using Wald's test, we get a p-value of 6.40*10^-8, allowing us to reject the null hypothesis that the distribution of time to recurrence is the same for clinics 1 & 2.
+
+```{r}
+
+#View(adix)
+
+surv.adix.clinic1 <- Surv(time=adix[adix$clinic==1, "time"],
+                          event=adix[adix$clinic==1, "event"],
+                          type="right")
+exp.clinic1 <- fitparametric(surv.adix.clinic1, dist="exp")
+
+surv.adix.clinic2 <- Surv(time=adix[adix$clinic==2, "time"],
+                          event=adix[adix$clinic==2, "event"],
+                          type="right")
+exp.clinic2 <- fitparametric(surv.adix.clinic2, dist="exp")
+
+delta.estimate <- exp.clinic1$coeff["lambda", "estimate"] - exp.clinic2$coeff["lambda", "estimate"]
+delta.estimate
+
+delta.SE <- (exp.clinic1$coeff["lambda", "se"]^2 + exp.clinic2$coeff["lambda", "se"]^2)^(1/2)
+delta.SE
+
+
+delta.wald.stat <- abs(delta.estimate)/delta.SE
+delta.wald.stat
+
+#Wald p-value
+delta.wald.p <- 2*pnorm(-abs(delta.wald.stat))
+delta.wald.p
+
+```
+
+
+
+(h)  Lambda for no incarceration = 0.00145 [95% CI: 0.00114-0.00177]
+     Lambda for incarceration = 0.00172 [95% CI: 0.00132-0.00213]
+
+By comparing these two models using Wald's test, we get a p-value of 0.306, which does not allow us to reject the null hypothesis that the distribution of time to recurrence is the same for those who were incarcerated vs. those that were not.
+
+```{r}
+
+#View(adix)
+
+surv.adix.nopris <- Surv(time=adix[adix$prison==0, "time"],
+                          event=adix[adix$prison==0, "event"],
+                          type="right")
+exp.nopris <- fitparametric(surv.adix.nopris, dist="exp")
+
+surv.adix.pris <- Surv(time=adix[adix$prison==1, "time"],
+                          event=adix[adix$prison==1, "event"],
+                          type="right")
+exp.pris <- fitparametric(surv.adix.pris, dist="exp")
+
+delta.estimate <- exp.nopris$coeff["lambda", "estimate"] - exp.pris$coeff["lambda", "estimate"]
+delta.estimate
+
+delta.SE <- (exp.nopris$coeff["lambda", "se"]^2 + exp.pris$coeff["lambda", "se"]^2)^(1/2)
+delta.SE
+
+
+delta.wald.stat <- abs(delta.estimate)/delta.SE
+delta.wald.stat
+
+#Wald p-value
+delta.wald.p <- 2*pnorm(-abs(delta.wald.stat))
+delta.wald.p
+
+```
 
 
 
 
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
 
+```
 
 
 
