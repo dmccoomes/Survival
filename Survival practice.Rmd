@@ -1,0 +1,22 @@
+---
+title: "Survival practice"
+author: "David Coomes"
+date: "January 27, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_packages}
+
+library(survival)
+#install.packages("numDeriv")
+#install.packages("flexsurv")
+#install.packages(("msm"))
+library(numDeriv)
+library(flexsurv)
+library(msm)
+
+```
