@@ -9,3 +9,11 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+<br>
+<br>
+
+###Problem 1
+
+Time t          # at risk (n)      # events (d)      d/n            S_{KM}(t)    H_{NA}(t)
+--------        -----------        -----------       ----------     ----------   ----------
