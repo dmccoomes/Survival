@@ -2,18 +2,340 @@
 title: "Biostat 537 HW 2"
 author: "David Coomes"
 date: "2/5/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE)
 ```
 
+```{r set_decimals}
+
+library(pander)
+panderOptions('digits', 4)
+panderOptions('round', 4)
+
+```
+
+
+```{r install_packages, include=FALSE}
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+```
 
 <br>
 <br>
 
 ###Problem 1
 
-Time t          # at risk (n)      # events (d)      d/n            S_{KM}(t)    H_{NA}(t)
---------        -----------        -----------       ----------     ----------   ----------
+<br>
+
+(a)
+
+####Maintenance Group Estimates
+
+```{r tables}
+
+#Maintenance Group
+maint_table_time <- c(9,12,13,18,23,28,31,34,45,48,161)
+maint_table_n <- c(12,11,10,9,8,7,6,5,4,2,1)
+maint_table_d <- c(1,1,0,1,1,0,1,1,1,1,0)
+
+maint_table <- cbind.data.frame(maint_table_time, maint_table_n, maint_table_d)
+
+maint_table$d_n <- maint_table$maint_table_d / maint_table$maint_table_n
+maint_table$d_n_1 <- 1-maint_table$d_n
+
+#Generating survival est
+for (val in maint_table$maint_table_time) {
+ maint_table <- mutate(maint_table, S_t = ifelse(maint_table_time>9, lag(maint_table$S_t)*d_n_1, 0.9166667))
+}
+
+#Generating cumulative haz est
+for (val in maint_table$maint_table_time) {
+maint_table <- mutate(maint_table, H_t = ifelse(maint_table_time>9, lag(maint_table$H_t)+d_n, 0.08333333))
+}
+
+kable(maint_table, digits=3, align="c",
+      col.names = c("Time (t)",
+                   "# at risk (n)",
+                   "# events (d)",
+                   "d/n",
+                   "1-d/n",
+                   "S(t)",
+                   "H(t)")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position="left") %>%
+                column_spec(1, bold=T, border_right=T)
+
+```
+
+
+<br>
+
+####Control Group Estimates
+
+```{r control_group}
+
+#Control Group
+cont_table_time <- c(4,5,8,10,12,16,23,27,30,38,43,45)
+cont_table_n <- c(13,12,11,9,8,7,6,5,4,3,2,1)
+cont_table_d <- c(1,1,2,0,1,0,1,1,1,1,1,1)
+
+cont_table <- cbind.data.frame(cont_table_time, cont_table_n, cont_table_d)
+
+cont_table$d_n <- cont_table$cont_table_d / cont_table$cont_table_n
+cont_table$d_n_1 <- 1-cont_table$d_n
+
+#Generating survival est
+for (val in cont_table$cont_table_time) {
+ cont_table <- mutate(cont_table, S_t = ifelse(cont_table_time>4, lag(cont_table$S_t)*d_n_1, d_n_1))
+}
+
+#Generating cumulative haz est
+for (val in cont_table$cont_table_time) {
+ cont_table <- mutate(cont_table, H_t = ifelse(cont_table_time>4, lag(cont_table$H_t)+d_n, d_n))
+}
+
+
+kable(cont_table, digits=3, align="c",
+      col.names = c("Time (t)",
+                   "# at risk (n)",
+                   "# events (d)",
+                   "d/n",
+                   "1-d/n",
+                   "S(t)",
+                   "H(t)")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position="left") %>%
+                column_spec(1, bold=T, border_right=T)
+
+
+```
+
+
+<br>
+<br>
+
+(b) For the maintenance group, we estimate a 56.8% probability that no relapse will occur by 36 months. For the control group, we estimate a 69.7% probability that no relapse will occur by 36 months.
+
+
+<br>
+<br>
+
+###Problem 2
+
+<br>
+
+```{r load_data, include=FALSE}
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Homework%202/addicts.csv"
+adix <- read.csv(link)
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Quiz%20section/fitparametric.R"
+source(link)
+
+
+```
+
+
+```{r surv_setup, include=FALSE}
+
+surv.adix <- Surv(time=adix$time, event=adix$event, type="right")
+survfit.adix <- survfit(surv.adix ~ 1, data=adix, conf.type="log-log")
+
+summary(survfit.adix)
+
+```
+
+(a) The estimated probability that no exit will occur by one year is 60.6% (95% CI: 53.8-66.7). 
+
+<br> 
+
+```{r plot_km}
+
+plot(survfit.adix,
+     conf.int=TRUE,
+     main="Kaplan-Meier survival estimate (includes 95% CI)",
+     ylab="Survival probability", xlab="Time (in days)",
+     col=c("blue", "light blue", "light blue"),
+     lty=c("solid", "dashed", "dashed"),
+     lwd=c(2, 1, 1),
+     caption ="caption")
+
+
+```
+
+<br>
+
+```{r median_survival, include=FALSE}
+
+summary(survfit.adix)$table
+
+```
+
+
+(b) The median time until exit from maintenance is 504 days (95% CI: 394-550).
+
+  i. We can obtain the median from looking at the Kaplan-Meier estimator by finding the time where the survival estimate first drops below 0.5. We can estimate the 95% confidence intervals by using the first time period that includes 0.5 in the 95% confidence interval for the lower estimate, and the first time interval that does not include 0.5 that comes after the median time. 
+  ii. the median estimate and 95% confidence intervals using the *survfit* command returns the same results as the examination of the Kaplan-Meier estimators for each time.
+  
+<br>
+
+(c) 
+  i.
+
+```{r km_curve_group}
+
+survfit.inc.adix <- survfit(surv.adix ~ prison, data=adix, conf.type="log-log")
+
+plot(survfit.inc.adix,
+     conf.int=FALSE,
+     main="Kaplan-Meier survival estimate by incarceration status",
+     ylab="Survival probability", xlab="Time (in days)",
+     col=c("blue", "orange"),
+     lty=c("solid", "dashed"),
+     lwd=c(2, 2))
+legend("topright", c("not incarcerated", "incarcerated"), col=c("blue", "orange"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+```
+
+  ii. The probability of no exit occuring by 8 months does not significantly differ at the 95% confidence level between those that were incarcerated and those that were not (p=0.077). 
+  
+```{r prob_diff, include=FALSE}
+
+#fit curve for those that were not incarcerated
+adix.inc.0 <- adix[adix$prison == 0, ]
+surv.adix.noprison <- Surv(time=adix.inc.0$time, event=adix.inc.0$event)
+survfit.adix.noprison <- survfit(surv.adix.noprison ~ 1, data=adix.inc.0, conf.type="log-log")
+
+#fit curve for those that were incarcerated
+adix.inc.1 <- adix[adix$prison == 1, ]
+surv.adix.prison <- Surv(time=adix.inc.1$time, event=adix.inc.1$event)
+survfit.adix.prison <- survfit(surv.adix.prison ~ 1, data=adix.inc.1, conf.type="log-log")
+
+#perform wald test for difference
+wald.stat.prison.8months <- (summary(survfit.adix.noprison, times=240)["surv"]$surv - summary(survfit.adix.prison, times=240)["surv"]$surv) /                                    (summary(survfit.adix.noprison, times=240)["std.err"]$std.err^2 + summary(survfit.adix.prison,                                                       times=240)["std.err"]$std.err^2)^(1/2)
+
+wald.stat.prison.8months
+
+#compute wald p-value
+2 * pnorm(-abs(wald.stat.prison.8months))
+
+
+```
+  
+  iii. Based on the logrank test, the distribution of time until exit from maintenance does not significantly differ by history of incarceration (p=0.3). 
+  
+```{r log_rank, include=FALSE}
+
+survdiff(surv.adix ~ prison, data=adix, rho=0)
+
+```
+
+  iv. Based on the Wilcoxon-Gehan-Breslow test, the survival time until exit from maintenance does not differ significantly by history of incarceration (p=0.11).
+  
+```{r wilcoxon_gehan_breslow, include=FALSE}
+
+library(survMisc)
+comp(ten(survfit.inc.adix))$tests
+
+```
+  
+  v. 
+  
+```{r hazard_plot}
+
+plot(survfit.inc.adix,
+     fun="cumhaz",
+     col=c("blue", "orange"), lwd=2, lty=c("solid", "dashed"),
+     xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by incarceration status")
+legend("topleft", c("not incarcerated", "incarcerated"), col=c("blue", "orange"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+```
+  
+  
+<br>
+
+(d)
+
+  i.
+
+```{r km_curve_methadone}
+
+adix$methuse_over60 <- ifelse(adix$dose>60, 1, 0) 
+
+survfit.meth.adix <- survfit(surv.adix ~ methuse_over60, data=adix, conf.type="log-log")
+
+plot(survfit.meth.adix,
+     conf.int=FALSE,
+     main="Kaplan-Meier survival estimate by methadone use",
+     ylab="Survival probability", xlab="Time (in days)",
+     col=c("blue", "orange"),
+     lty=c("solid", "dashed"),
+     lwd=c(2, 2))
+legend("topright", c("no more than 60 mg/day", "> 60 mg/day"), col=c("blue", "orange"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+```
+
+  ii. The probability of no exit occuring by 8 months significantly differs at the 95% confidence level between those that had a methadone dose of less than or equal to 60 mg/day and those that recorded a dose of more than 60 mg/day (p=1.57 e-5). 
+  
+```{r prob_diff_methdone, include=FALSE}
+
+#fit curve for those that were not incarcerated
+adix.meth.0 <- adix[adix$methuse_over60 == 0, ]
+surv.adix.meth.0 <- Surv(time=adix.meth.0$time, event=adix.meth.0$event)
+survfit.adix.meth.0 <- survfit(surv.adix.meth.0 ~ 1, data=adix.meth.0, conf.type="log-log")
+
+#fit curve for those that were incarcerated
+adix.meth.1 <- adix[adix$methuse_over60 == 1, ]
+surv.adix.meth.1 <- Surv(time=adix.meth.1$time, event=adix.meth.1$event)
+survfit.adix.meth.1 <- survfit(surv.adix.meth.1 ~ 1, data=adix.meth.1, conf.type="log-log")
+
+#perform wald test for difference
+wald.stat.meth.8months <- (summary(survfit.adix.meth.0, times=240)["surv"]$surv - summary(survfit.adix.meth.1, times=240)["surv"]$surv) /                                    (summary(survfit.adix.meth.0, times=240)["std.err"]$std.err^2 + summary(survfit.adix.meth.1,                                                         times=240)["std.err"]$std.err^2)^(1/2)
+
+wald.stat.meth.8months
+
+#compute wald p-value
+2 * pnorm(-abs(wald.stat.meth.8months))
+
+
+```
+  
+  iii. Based on the logrank test, the distribution of time until exit from maintenance significantly differs by methadone use (p=3 e-7). 
+  
+```{r log_rank_meth, include=FALSE}
+
+survdiff(surv.adix ~ methuse_over60, data=adix, rho=0)
+
+```
+
+  iv. Based on the Wilcoxon-Gehan-Breslow test, the survival time until exit from maintenance differs significantly by methadone use (p=7.29 e-7).
+  
+```{r wilcoxon_gehan_breslow_meth, include=FALSE}
+
+library(survMisc)
+comp(ten(survfit.meth.adix))$tests
+
+```
+  
+  v. 
+  
+```{r hazard_plot_meth}
+
+plot(survfit.meth.adix,
+     fun="cumhaz",
+     col=c("blue", "orange"), lwd=2, lty=c("solid", "dashed"),
+     xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by methadone use")
+legend("topleft", c("no more than 60 mg/day", ">60 mg/day"), col=c("blue", "orange"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+```
+
+
+  
+  
