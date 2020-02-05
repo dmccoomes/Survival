@@ -3,8 +3,8 @@ title: "Biostat 537 HW 2"
 author: "David Coomes"
 date: "2/5/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 fig_caption: yes
 ---
 
@@ -26,6 +26,7 @@ panderOptions('round', 4)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
+source("getmedianres.R")
 
 ```
 
@@ -181,8 +182,8 @@ summary(survfit.adix)$table
 
 (b) The median time until exit from maintenance is 504 days (95% CI: 394-550).
 
-  i. We can obtain the median from looking at the Kaplan-Meier estimator by finding the time where the survival estimate first drops below 0.5. We can estimate the 95% confidence intervals by using the first time period that includes 0.5 in the 95% confidence interval for the lower estimate, and the first time interval that does not include 0.5 that comes after the median time. 
-  ii. the median estimate and 95% confidence intervals using the *survfit* command returns the same results as the examination of the Kaplan-Meier estimators for each time.
+  i. We can obtain the median from looking at the Kaplan-Meier estimator by finding the time where the survival estimate first drops below 0.5. We can estimate the 95% confidence intervals by using the first time period that includes 0.5 in the 95% confidence interval for the lower estimate, and the first time interval that does not include 0.5 that comes after the median time as the upper estimate. 
+  ii. the median estimate and 95% confidence intervals using the *survfit* command returns the same results as the manual examination of the Kaplan-Meier estimators as described in *part i*.
   
 <br>
 
@@ -246,7 +247,7 @@ comp(ten(survfit.inc.adix))$tests
 
 ```
   
-  v. 
+  v. This plot is informative of the power of the logrank test in that we can see that the two cumulative hazard functions cross over at several points, which reduces the power of the logrank test to detect differences. Since the functions cross over several times towards the end (right side) of the time period, and have some separation towards the beginning and the middle of the time period, I would expect the test statistic for the Wilcoxon-Gehan-Breslow test to be larger than that of the standard logrank test because the former test places more weight on the beginning of the time. We can see that this is true by examining the output of both test statistics from the previous question. 
   
 ```{r hazard_plot}
 
@@ -265,7 +266,7 @@ legend("topleft", c("not incarcerated", "incarcerated"), col=c("blue", "orange")
 
   i.
 
-```{r km_curve_methadone}
+```{r km_curve_methadone, include=FALSE}
 
 adix$methuse_over60 <- ifelse(adix$dose>60, 1, 0) 
 
@@ -324,7 +325,7 @@ comp(ten(survfit.meth.adix))$tests
 
 ```
   
-  v. 
+  v. These two cumulative hazard functions do not cross over at any timepoint, therefore we would expect the standard logrank test to have good power in detecting differences between the two groups. I would expect the test statistic for the Wilcoxan-Gehan-Breslow test to be slightly smaller than that of the standard logrank test because there is a larger difference in the two functions towards the later time periods, and the standard logrank test emphasizes this period comparatively. We see that this is true when examining the test statistics in the previous question.
   
 ```{r hazard_plot_meth}
 
@@ -333,6 +334,100 @@ plot(survfit.meth.adix,
      col=c("blue", "orange"), lwd=2, lty=c("solid", "dashed"),
      xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by methadone use")
 legend("topleft", c("no more than 60 mg/day", ">60 mg/day"), col=c("blue", "orange"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+```
+
+
+<br>
+
+(e) Based on a stratified logrank test, the time until exit from maintenance significantly differs (at the 95% level) based on history of previous incarceration after adjusting for clinic membership (p=0.04). 
+
+$$H_0:\; S_{noprison, clinic=1}(t)=S_{prison, clinic=1}(t)\quad AND\quad S_{noprison, clinic=2}(t) = S_{prison, clinic=2}(t)\; for\; all\; t$$
+  
+
+\begin{align*}
+H_a:\; At\; least\; one\; of\; the\; above\; equations\; are\; not\; true\\
+\end{align*}
+
+```{r stratified_logrank, include=FALSE}
+
+survdiff(surv.adix ~ prison + strata(clinic), data=adix)
+
+```
+
+
+<br>
+
+
+(f) In calculating the median residual time until exit using only the Kaplan-Meier estimators, I get:
+
+Time (t)          Median residal time       
+-----------       -----------------------
+4 months          426 days
+8 months          427 days
+12 months         389 days
+
+
+
+When using the R function I get:
+
+Time (t)          Median residual time
+-----------       -------------------------
+4 months          420 days (95% CI: 376-532)
+8 months          427 days (95% CI: 341-520)
+12 months         389 days (95% CI: 301-461)
+
+
+
+
+```{r mean_residual_time, include=FALSE}
+
+#Starting with 4 months
+summary(survfit.adix, times=120)
+0.5 * summary(survfit.adix, times=120)["surv"]$surv
+summary(survfit.adix, times=seq(530,560))
+546 - 120
+#mean residual for 4 months is 426 days
+
+#8 months
+summary(survfit.adix, times=240)
+0.5 * summary(survfit.adix, times=240)["surv"]$surv
+summary(survfit.adix, times=seq(600,800))
+667-240
+# mean residual time for 8 months is 427 days
+
+#12 months
+summary(survfit.adix, times=360)
+0.5 * summary(survfit.adix, times=360)["surv"]$surv
+summary(survfit.adix, times=seq(700, 800))
+749-360
+#mean residual time for 12 months is 389 days
+
+```
+
+```{r mean_res_time_ver, include=FALSE}
+
+#4 months
+df.for.medresidual <- data.frame("y"=adix$time, "delta"=adix$event)
+medresidual.120 <- getmedianres(survobj=surv.adix,
+                                times=120, confint=TRUE)
+
+medresidual.120$estimates
+c(medresidual.120$ci.lower, medresidual.120$ci.upper)
+
+#8 months
+medresidual.240 <- getmedianres(survobj = surv.adix,
+                                times=240, confint=TRUE)
+
+medresidual.240$estimates
+c(medresidual.240$ci.lower, medresidual.240$ci.upper)
+
+#12 months
+medresidual.360 <- getmedianres(survobj = surv.adix,
+                                times=360, confint=TRUE)
+
+medresidual.360$estimates
+c(medresidual.360$ci.lower, medresidual.360$ci.upper)
 
 ```
 
