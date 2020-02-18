@@ -9,3 +9,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+```{r load_packages}
+
+library(survival)
+library(numDeriv)
+library(flexsurv)
+library(msm)
+
+```
+
