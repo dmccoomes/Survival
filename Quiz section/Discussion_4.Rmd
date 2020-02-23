@@ -1,0 +1,135 @@
+---
+title: "EPI/BIOST 537 - Discussion 4"
+author: "Eric Morenz (Prepared by Jeremy Roth)"
+date: 'February 4, 2019'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Load in the herpes dataset and create the apporopriate survival/survfit objects
+```{r load_data, message=FALSE, warning=FALSE}
+library(survival) 
+library(flexsurv)
+library(survMisc) # for Wilcoxon-Gehan-Breslow test 
+source("getmedianres.R")
+herpes <- read.csv(file="Data/herpes.csv", header=TRUE)
+surv.herpes <- Surv(time=herpes$timetorec, event=herpes$event, type="right")
+survfit.herpes <- survfit(surv.herpes ~ 1, data=herpes, conf.type = "log-log")
+```
+
+## Problem 2
+### 2(a) Plot the Kaplan-Meier estimator along with pointwise 95% CIs. What is the estimated probability that no event will occur by 120 days?
+```{r plot_KM, fig.align="center"}
+plot(survfit.herpes, main="Kaplan-Meier survival estimate", 
+      ylab="Survival probability", xlab="Days")
+abline(v=120, col="blue", lty="dashed")
+axis(1, at=120, labels=120, col.axis='blue')
+```
+
+```{r}
+summary(survfit.herpes, times=c(119, 120, 121))
+```
+
+### 2(b) Provide the estimated median survival time and associated 95% confidence interval by:
+#### (i) scrutinizing values of the Kaplan-Meier estimator and associated confidence intervals
+```{r}
+summary(survfit.herpes, times=seq(1:70))
+```
+
+#### (ii) using the median estimate and confidence intervals provided by the survfit command
+```{r}
+summary(survfit.herpes)$table
+```
+
+### 2(c) Investigate differences between patients with and without a history of incarceration.
+#### (i) On the same graph, plot the Kaplan-Meier estimates for male=0 and male=1
+```{r, fig.align="center"}
+survfit.herpes.by.male <- survfit(surv.herpes ~ male, data=herpes, conf.type = "log-log")
+plot(survfit.herpes.by.male, 
+       col=c("blue", "orange"), lwd=2, lty=c("solid", "dashed"), 
+      xlab="Days", ylab="Survival probability", main="Kaplan-Meier survival estimates")
+legend("topright", c("male=0", "male=1"), col=c("blue", "orange"), lwd=c(3, 3), lty=c("solid", "dashed"))
+```
+
+#### (ii) Does the probability that no event occurred by 8 months differ significantly between these two groups?
+```{r}
+# estimate and SE of S(8 months) in male==0 subset
+herpes.male.0 <- herpes[herpes$male == 0, ]
+surv.herpes.male.0 <- Surv(time=herpes.male.0$timetorec, event=herpes.male.0$event)
+survfit.herpes.male.0 <- survfit(surv.herpes.male.0 ~ 1, data=herpes.male.0, conf.type = "log-log")
+summary(survfit.herpes.male.0, times=240)
+
+# estimate and SE of S(8 months) in male==1 subset
+herpes.male.1 <- herpes[herpes$male == 1, ]
+surv.herpes.male.1 <- Surv(time=herpes.male.1$timetorec, event=herpes.male.1$event)
+survfit.herpes.male.1 <- survfit(surv.herpes.male.1 ~ 1, data=herpes.male.1, conf.type = "log-log")
+summary(survfit.herpes.male.1, times=240)
+# compute Wald test statistic
+wald.statistic.male.8.months <- (summary(survfit.herpes.male.0, times=240)["surv"]$surv - 
+                             summary(survfit.herpes.male.1, times=240)["surv"]$surv) / 
+                             (summary(survfit.herpes.male.0, times=240)["std.err"]$std.err^2 + 
+                             summary(survfit.herpes.male.1, times=240)["std.err"]$std.err^2)^(1/2)
+wald.statistic.male.8.months
+# compute Wald p-value
+2 * pnorm(-abs(wald.statistic.male.8.months))
+```
+
+#### (iii) Based on the logrank test, does the distribution of survival time differ significantly between the two groups?
+```{r}
+survdiff(surv.herpes ~ male, data=herpes, rho=0) 
+```
+
+
+#### (iv) Based on the Wilcoxon-Gehan-Breslow test, does the distribution of survival time differ significantly between the two groups?
+```{r}
+# looking at the "n" row and the "pNorm" column
+comp(ten(survfit.herpes.by.male))$tests
+```
+#### (v) Plot estimated hazard functions for patients with and without a history of incarceration.
+```{r, fig.align="center"}
+plot(survfit.herpes.by.male, 
+     fun="cumhaz",
+      col=c("blue", "orange"), lwd=2, lty=c("solid", "dashed"), 
+      xlab="Days", ylab="Cumulative Hazard", main="Nelson−Aalen cumulative hazard estimates")
+legend("topleft", c("male=0", "male=1"), col=c("blue", "orange"), lwd=c(3, 3), lty=c("solid", "dashed"))
+```
+
+### 2(e) Based on a stratified logrank test, does the distribution of survival time differs by sex, adjusting for duration of primary episode > 15 days? State explicitly what the null and alternative hypotheses are and contrast with what they are in a standard logrank test.
+```{r}
+herpes$duration.above.15 <- herpes$duration > 15
+survdiff(surv.herpes ~ male + strata(duration.above.15), data=herpes)
+```
++ In a standard log-rank test, the null hypothesis is that 
+$$S_{\text{male}=0}(t) = S_{\text{male}=1}(t) $$
+for all $t$.
++ In a stratified log-rank test, the null hypothesis is that 
+$$ S_{\text{male}=0, \: \text{duration} \leq 15}(t) = S_{\text{male}=1, \: \text{duration} \leq 15}(t)$$
+**and**
+$$ S_{\text{male}=0, \: \text{duration} > 15}(t) = S_{\text{male}=1, \: \text{duration} > 15}(t)$$
+for all $t$.
+
+### 2(f). What is the estimated median residual survival time at 60 days?
+#### (i) Calculate these estimates using only values of the Kaplan-Meier estimator.
+```{r}
+# need estimated survival probability at 60 days
+summary(survfit.herpes, times=60)
+# find half of the estimated survival probability at 60 days
+0.5 * summary(survfit.herpes, times=60)["surv"]$surv
+# find the t where S(t) goes below  0.2358444 for the first time
+summary(survfit.herpes, times=seq(1:200))
+# don't forget to subtract 60 days from this time
+182 - 60
+```
+
+#### (ii) Verify your answer using the R function provided for this purpose, and obtain 95% confidence intervals to accompany your estimates.
+```{r}
+df.for.medresidual <- data.frame("y"=herpes$timetorec, "delta"=herpes$event)
+medresidual.60 <- getmedianres(survobj=surv.herpes,
+                              times=60, confint=TRUE)
+## estimate of median residual survival time at 60 days
+medresidual.60$estimates
+## CI for median residual survival time at 60 days
+c(medresidual.60$ci.lower, medresidual.60$ci.upper)
+```
+

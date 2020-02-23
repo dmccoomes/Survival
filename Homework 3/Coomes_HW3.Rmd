@@ -1,0 +1,76 @@
+---
+title: "Survival HW3"
+author: "David"
+date: "Due February 26, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r load_packages, include=FALSE}
+
+library(survival) 
+library(flexsurv)
+library(survMisc) # for Wilcoxon-Gehan-Breslow test 
+source("/Users/david/Documents/GitHub/Survival/Homework 3/getmedianres.R")
+
+
+```
+
+
+```{r load_data, include=FALSE}
+
+luke <- read.csv("/Users/david/Documents/GitHub/Survival/Homework 3/ccg803.csv", header=TRUE)
+surv.luke <- Surv(time=luke$duration, event=luke$relapse, type="right")
+
+```
+
+
+<br>
+<br>
+
+###Question 1
+
+(a) There is a significant difference in relapse associated with dactinomycin use (p=0.0439). The hazard ratio for relapse comparing those who receive dactinomycin to those who do not is 0.738 (95% CI: 0.5550-0.992). 
+
+```{r fit_coxph1, include=FALSE}
+
+model.1 <- coxph(surv.luke ~ rx, data=luke)
+summary(model.1)
+
+```
+
+
+<br>
+
+(b) There is a significant association between treatment and relapse after controlling for white blood cell count and age using a Cox PH model (p=0.0492). The hazard ratio for relapse comparing those that received dactinomycin to those that did not is 0.744 (95% CI: 0.553-1.000). 
+
+```{r fit_coxph2}
+
+model.2 <- coxph(surv.luke ~ rx + wbc + age, data=luke)
+summary(model.2)
+
+```
+
+<br>
+
+(c)  
+
+```{r fit_cox3}
+
+luke$wbc_high <- (luke$wbc >= 100)*luke$wbc
+luke$wbc_low <- (luke$wbc < 100)*luke$wbc
+luke$rx_high <- (luke$wbc >= 100)*luke$rx
+luke$rx_low <- (luke$wbc < 100)*luke$rx
+
+model.3 <- coxph(surv.luke ~ rx + rx_high + rx_low + wbc_high + wbc_low + age, data = luke)
+summary(model.3)
+
+
+
+```
+
+
