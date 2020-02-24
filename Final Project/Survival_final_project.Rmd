@@ -9,3 +9,31 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+```{r install_packages}
+
+if (!require(kableExtra)) install.packages("kableExtra")
+
+
+```
+
+
+
+```{r load_packages, include=FALSE}
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+#source("getmedianres.R")
+
+```
+
+
+```{r load_data}
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Final%20Project/Data/bmt.csv"
+
+data <- read.csv(url(link), header=TRUE)
+
+```
+
