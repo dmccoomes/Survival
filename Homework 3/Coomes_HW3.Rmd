@@ -48,7 +48,7 @@ summary(model.1)
 
 (b) There is a significant association between treatment and relapse after controlling for white blood cell count and age using a Cox PH model (p=0.0492). The hazard ratio for relapse comparing those that received dactinomycin to those that did not is 0.744 (95% CI: 0.553-1.000). 
 
-```{r fit_coxph2}
+```{r fit_coxph2, include=FALSE}
 
 model.2 <- coxph(surv.luke ~ rx + wbc + age, data=luke)
 summary(model.2)
@@ -57,19 +57,65 @@ summary(model.2)
 
 <br>
 
-(c)  
+(c) For the sub-population in which the white blood cell (wbc) count is below 10,000, the HR comparing individuals who receive treatment as compared to those who did not is 0.553 (95% CI: 0.368-0.831). For the sub-population in which the wbc count is greater than or equal to 10,000, the HR comparing those who received treatment to those who did not is 1.016 (95% CI: 0.699-1.477). 
 
 ```{r fit_cox3}
 
+#creating interaction variables
 luke$wbc_high <- (luke$wbc >= 100)*luke$wbc
 luke$wbc_low <- (luke$wbc < 100)*luke$wbc
 luke$rx_high <- (luke$wbc >= 100)*luke$rx
 luke$rx_low <- (luke$wbc < 100)*luke$rx
 
-model.3 <- coxph(surv.luke ~ rx + rx_high + rx_low + wbc_high + wbc_low + age, data = luke)
+#model with interaction
+model.3_large <- coxph(surv.luke ~ wbc_high + wbc_low + rx_high + rx_low + age, data = luke)
 summary(model.3)
 
+model.3_large_est <- exp(coef(model.3)["rx_high"])
+model.3_large_est
 
+#model without interaction
+model.3_small <- coxph(surv.luke ~ rx + wbc_high + wbc_low + age, data=luke)
+summary(model.3_small)
+
+#performing test to determine interaction
+as.numeric(2 * (logLik(model.3_large) - logLik(model.3_small)))
+#test statistic is 5.526
+
+
+
+```
+
+<br>
+
+(d) The HR comparing those who received treatment to those who did not, adjusting for wbc, age, and treatment site is 0.710 (95% CI: 0.520-0.969).
+
+```{r fit_cox4, include=FALSE}
+
+model.4 <- coxph(surv.luke ~ rx + wbc + age + strata(institution), data=luke)
+summary(model.4)
+
+```
+
+
+(e) 
+
+
+```{r plot_curves}
+
+plot(survfit(model.2,
+     newdata=data.frame(rx=1, age=5, wbc=45)),
+     conf.int=FALSE, lwd=2, col="blue", lty="dashed", 
+     xlab="Days", ylab="Survival Probability")
+lines(survfit(model.2,
+     newdata=data.frame(rx=0, age=5, wbc=45)),
+     conf.int=FALSE, lwd=2, col="blue", lty="solid")
+lines(survfit(model.2,
+     newdata=data.frame(rx=1, age=5, wbc=210)),
+     conf.int=FALSE, lwd=2, col="orange", lty="dashed")
+lines(survfit(model.2,
+     newdata=data.frame(rx=0, age=5, wbc=210)),
+     conf.int=FALSE, lwd=2, col="orange", lty="solid")
 
 ```
 
