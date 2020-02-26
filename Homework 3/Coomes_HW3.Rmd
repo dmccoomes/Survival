@@ -1,11 +1,12 @@
 ---
 title: "Survival HW3"
-author: "David"
+author: "David Coomes"
 date: "Due February 26, 2020"
 output:
-  word_document: default
   pdf_document: default
+  word_document: default
   html_document: default
+geometry: margin=2cm 
 ---
 
 ```{r setup, include=FALSE}
@@ -45,10 +46,10 @@ library(msm)
 #luke <- read.csv(url(link), header=TRUE)
 
 #laptop data
-#luke <- read.csv("/Users/david/Documents/GitHub/Survival/Homework 3/ccg803.csv", header=TRUE)
+luke <- read.csv("/Users/david/Documents/GitHub/Survival/Homework 3/ccg803.csv", header=TRUE)
 
 #computer in office
-luke <- read.csv("C:\\Users\\dcoomes\\Dropbox\\Classes\\survival\\Data\\ccg803.csv", header=TRUE)
+#luke <- read.csv("C:\\Users\\dcoomes\\Dropbox\\Classes\\survival\\Data\\ccg803.csv", header=TRUE)
 
 surv.luke <- Surv(time=luke$duration, event=luke$relapse, type="right")
 
@@ -234,6 +235,14 @@ as.numeric(c(est - 1.196*se,
 
 
 
+\newpage
+
+
+###Appendix
+
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+
+```
 
 
 
