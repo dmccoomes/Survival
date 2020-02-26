@@ -59,7 +59,7 @@ summary(model.2)
 
 (c) For the sub-population in which the white blood cell (wbc) count is below 10,000, the HR comparing individuals who receive treatment as compared to those who did not is 0.553 (95% CI: 0.368-0.831). For the sub-population in which the wbc count is greater than or equal to 10,000, the HR comparing those who received treatment to those who did not is 1.016 (95% CI: 0.699-1.477). 
 
-```{r fit_cox3}
+```{r fit_cox3, include=FALSE}
 
 #creating interaction variables
 luke$wbc_high <- (luke$wbc >= 100)*luke$wbc
@@ -69,9 +69,9 @@ luke$rx_low <- (luke$wbc < 100)*luke$rx
 
 #model with interaction
 model.3_large <- coxph(surv.luke ~ wbc_high + wbc_low + rx_high + rx_low + age, data = luke)
-summary(model.3)
+summary(model.3_large)
 
-model.3_large_est <- exp(coef(model.3)["rx_high"])
+model.3_large_est <- exp(coef(model.3_large)["rx_high"])
 model.3_large_est
 
 #model without interaction
@@ -116,7 +116,42 @@ lines(survfit(model.2,
 lines(survfit(model.2,
      newdata=data.frame(rx=0, age=5, wbc=210)),
      conf.int=FALSE, lwd=2, col="orange", lty="solid")
+legend("topright", cex=0.7,
+       legend=c("treated, age=5, wbc=45", 
+                "untreated, age=5, wbc=45",
+                "treated, age=5, wbc=210",
+                "untreated, age=5, wbc=210"),
+       col=c("blue", "blue", "orange", "orange"),
+       lty=c("dashed", "solid", "dashed", "solid"),
+       lwd=c(2))
 
 ```
 
+
+
+\newpage
+
+####Question 2
+
+```{r load_data}
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Homework%201/addicts.csv"
+adix <- read.csv(link)
+
+surv.adix <- Surv(time=adix$time, event=adix$event, type="right")
+survfit.adix <- survfit(surv.adix ~ 1, data=adix, conf.type = "log-log")
+
+
+```
+
+
+(a) The HR of exit from maintenance comparing individuals who receive a one mg higher dose of methadone is 0.965 (95% CI: 0.953-0.977). The HR comparing those who were incarcerated to those who were not is 1.386 (95% CI: 0.999-1.924).
+
+
+```{r}
+
+model.2.1 <- coxph(surv.adix ~ dose + prison + clinic, data=adix)
+summary(model.2.1)
+
+```
 
