@@ -2,11 +2,23 @@
 title: "Survival HW3"
 author: "David"
 date: "Due February 26, 2020"
-output: html_document
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r install_packages, include=FALSE}
+
+if (!require(flexsurv)) install.packages("flexsurv")
+if (!require(survMisc)) install.packages("survMisc")
+if (!require(msm)) install.packages("msm")
+
 ```
 
 
@@ -15,7 +27,12 @@ knitr::opts_chunk$set(echo = FALSE)
 library(survival) 
 library(flexsurv)
 library(survMisc) # for Wilcoxon-Gehan-Breslow test 
-source("/Users/david/Documents/GitHub/Survival/Homework 3/getmedianres.R")
+library(msm)
+
+#link="https://github.com/dmccoomes/Survival/raw/master/Homework%203/getmedianres.R"
+#source(url(link))
+
+#source("C:\\Users\\dcoomes\\My Documents\\GitHub\\Survival\\Homework 3\\getmedianres.R")
 
 
 ```
@@ -23,7 +40,16 @@ source("/Users/david/Documents/GitHub/Survival/Homework 3/getmedianres.R")
 
 ```{r load_data, include=FALSE}
 
-luke <- read.csv("/Users/david/Documents/GitHub/Survival/Homework 3/ccg803.csv", header=TRUE)
+#there is a problem reading in the data from github
+#link2="https://github.com/dmccoomes/Survival/raw/master/Homework%203/ccg803.csv"
+#luke <- read.csv(url(link), header=TRUE)
+
+#laptop data
+#luke <- read.csv("/Users/david/Documents/GitHub/Survival/Homework 3/ccg803.csv", header=TRUE)
+
+#computer in office
+luke <- read.csv("C:\\Users\\dcoomes\\Dropbox\\Classes\\survival\\Data\\ccg803.csv", header=TRUE)
+
 surv.luke <- Surv(time=luke$duration, event=luke$relapse, type="right")
 
 ```
@@ -133,7 +159,7 @@ legend("topright", cex=0.7,
 
 ####Question 2
 
-```{r load_data}
+```{r load_data2}
 
 link = "https://github.com/dmccoomes/Survival/raw/master/Homework%201/addicts.csv"
 adix <- read.csv(link)
@@ -169,14 +195,45 @@ summary(model.2.2)
 
 ```
 
+<br>
 
-(c)
+(c) There is not a significant difference in the association between methadone dose and risk of exit from maintenance, adjusting for prison status and clinic (by stratification), between those that have a history of incarceration and those that did not (p=0.443). The exponentiated coefficient of the interaction term between incarceration history and methodone dose is 1.010 (95% CI: 0.985-1.036). 
 
-```{r}
 
-model.2.3 <- coxph(surv.adix ~ dose + strata(clinic) + dose*prison, data=adix)
+```{r, include=FALSE}
+
+model.2.3 <- coxph(surv.adix ~ dose + prison + strata(clinic) + dose*prison, data=adix)
 summary(model.2.3)
 
+
 ```
+
+<br>
+
+
+The HR comparing patients from the same clinic with a history of incarceration receiving 100 mg/day of methadone to patients without a history of incarceration receiving 40 mg/day of methadone is 0.215 (95% CI: 0.096-0.410).  
+
+```{r, include=FALSE}
+
+est <- exp(60 * coef(model.2.3)["dose"] + 
+             coef(model.2.3)["prison"] +
+             100 * coef(model.2.3)["dose:prison"])
+
+se <- deltamethod(g=~exp((60*x1 + x2 + 100*x3)),
+                  mean=coef(model.2.3)[c("dose", "prison", "dose:prison")],
+                  cov=vcov(model.2.3)[c("dose", "prison", "dose:prison"),
+                                      c("dose", "prison", "dose:prison")],
+                  ses=TRUE)
+
+as.numeric(est)
+
+as.numeric(c(est - 1.196*se,
+             est + 1.96*se))
+
+```
+
+
+
+
 
 
