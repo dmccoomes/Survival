@@ -1,0 +1,182 @@
+---
+title: "Survival HW3"
+author: "David"
+date: "Due February 26, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r load_packages, include=FALSE}
+
+library(survival) 
+library(flexsurv)
+library(survMisc) # for Wilcoxon-Gehan-Breslow test 
+source("/Users/david/Documents/GitHub/Survival/Homework 3/getmedianres.R")
+
+
+```
+
+
+```{r load_data, include=FALSE}
+
+luke <- read.csv("/Users/david/Documents/GitHub/Survival/Homework 3/ccg803.csv", header=TRUE)
+surv.luke <- Surv(time=luke$duration, event=luke$relapse, type="right")
+
+```
+
+
+<br>
+<br>
+
+###Question 1
+
+(a) There is a significant difference in relapse associated with dactinomycin use (p=0.0439). The hazard ratio for relapse comparing those who receive dactinomycin to those who do not is 0.738 (95% CI: 0.5550-0.992). 
+
+```{r fit_coxph1, include=FALSE}
+
+model.1 <- coxph(surv.luke ~ rx, data=luke)
+summary(model.1)
+
+```
+
+
+<br>
+
+(b) There is a significant association between treatment and relapse after controlling for white blood cell count and age using a Cox PH model (p=0.0492). The hazard ratio for relapse comparing those that received dactinomycin to those that did not is 0.744 (95% CI: 0.553-1.000). 
+
+```{r fit_coxph2, include=FALSE}
+
+model.2 <- coxph(surv.luke ~ rx + wbc + age, data=luke)
+summary(model.2)
+
+```
+
+<br>
+
+(c) For the sub-population in which the white blood cell (wbc) count is below 10,000, the HR comparing individuals who receive treatment as compared to those who did not is 0.553 (95% CI: 0.368-0.831). For the sub-population in which the wbc count is greater than or equal to 10,000, the HR comparing those who received treatment to those who did not is 1.016 (95% CI: 0.699-1.477). 
+
+```{r fit_cox3, include=FALSE}
+
+#creating interaction variables
+luke$wbc_high <- (luke$wbc >= 100)*luke$wbc
+luke$wbc_low <- (luke$wbc < 100)*luke$wbc
+luke$rx_high <- (luke$wbc >= 100)*luke$rx
+luke$rx_low <- (luke$wbc < 100)*luke$rx
+
+#model with interaction
+model.3_large <- coxph(surv.luke ~ wbc_high + wbc_low + rx_high + rx_low + age, data = luke)
+summary(model.3_large)
+
+model.3_large_est <- exp(coef(model.3_large)["rx_high"])
+model.3_large_est
+
+#model without interaction
+model.3_small <- coxph(surv.luke ~ rx + wbc_high + wbc_low + age, data=luke)
+summary(model.3_small)
+
+#performing test to determine interaction
+as.numeric(2 * (logLik(model.3_large) - logLik(model.3_small)))
+#test statistic is 5.526
+
+
+
+```
+
+<br>
+
+(d) The HR comparing those who received treatment to those who did not, adjusting for wbc, age, and treatment site is 0.710 (95% CI: 0.520-0.969).
+
+```{r fit_cox4, include=FALSE}
+
+model.4 <- coxph(surv.luke ~ rx + wbc + age + strata(institution), data=luke)
+summary(model.4)
+
+```
+
+
+(e) 
+
+
+```{r plot_curves}
+
+plot(survfit(model.2,
+     newdata=data.frame(rx=1, age=5, wbc=45)),
+     conf.int=FALSE, lwd=2, col="blue", lty="dashed", 
+     xlab="Days", ylab="Survival Probability")
+lines(survfit(model.2,
+     newdata=data.frame(rx=0, age=5, wbc=45)),
+     conf.int=FALSE, lwd=2, col="blue", lty="solid")
+lines(survfit(model.2,
+     newdata=data.frame(rx=1, age=5, wbc=210)),
+     conf.int=FALSE, lwd=2, col="orange", lty="dashed")
+lines(survfit(model.2,
+     newdata=data.frame(rx=0, age=5, wbc=210)),
+     conf.int=FALSE, lwd=2, col="orange", lty="solid")
+legend("topright", cex=0.7,
+       legend=c("treated, age=5, wbc=45", 
+                "untreated, age=5, wbc=45",
+                "treated, age=5, wbc=210",
+                "untreated, age=5, wbc=210"),
+       col=c("blue", "blue", "orange", "orange"),
+       lty=c("dashed", "solid", "dashed", "solid"),
+       lwd=c(2))
+
+```
+
+
+
+\newpage
+
+####Question 2
+
+```{r load_data}
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Homework%201/addicts.csv"
+adix <- read.csv(link)
+
+surv.adix <- Surv(time=adix$time, event=adix$event, type="right")
+survfit.adix <- survfit(surv.adix ~ 1, data=adix, conf.type = "log-log")
+
+
+```
+
+
+(a) The HR of exit from maintenance comparing individuals who receive a one mg higher dose of methadone, adjusting for incarceration status and clinic, is 0.965 (95% CI: 0.953-0.977). The HR comparing those who were incarcerated to those who were not, adjusting for methadone dose and clinic, is 1.386 (95% CI: 0.999-1.924). The HR comparing individuals from clinic 2 as compared to clinic 1, adjusting for methadone dose and incarceration status, is 0.364 (95% CI: 0.239-0.555).
+
+
+```{r, include=FALSE}
+
+model.2.1 <- coxph(surv.adix ~ dose + prison + clinic, data=adix)
+summary(model.2.1)
+
+```
+
+
+(b) The HR of exit from maintenance associated with an one mg increase in methadone dose, adjusting for incarceration history and clinic, is 0.966 (95% CI: 0.953-0.978). The HR comparing those that have a previous history of incarceration to those that do not, adjusting for methadone dose and clinic, is 1.476 (95% CI: 1.060-2.056).
+
+<br>
+
+Using clinic as a stratifying variable allows for a more flexible model - we are not forcing the baseline hazard function to be proportional across levels of the stratifying variable (clinic in this case). This is useful since we don't necessarily care about the HR comparing across levels of clinic. This does not change the interpretation of our estimates. It did not change our estimates much, except that our HR comparing incarceration status is now significant at the 0.05 level where it had been just barely not significant in the non-stratified model.
+
+```{r, include=FALSE}
+
+model.2.2 <- coxph(surv.adix ~ dose + prison + strata(clinic), data=adix)
+summary(model.2.2)
+
+```
+
+
+(c)
+
+```{r}
+
+model.2.3 <- coxph(surv.adix ~ dose + strata(clinic) + dose*prison, data=adix)
+summary(model.2.3)
+
+```
+
+

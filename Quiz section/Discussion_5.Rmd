@@ -1,0 +1,124 @@
+---
+title: "EPI/BIOST 537 - Discussion 5"
+author: "Eric Morenz, taken from Jeremy Roth"
+date: 'Tuesday, February 18 2020'
+output:
+  html_document: default
+  pdf_document: default
+---
+# PROBLEM 1
+## Load data and create survival objects
+```{r load_lung_data, message=FALSE}
+library(survival)
+library(foreign)
+library(msm)
+lung <- read.dta(file="Data/lung.dta") ## Problem 1
+herpes <- read.csv(file="Data/herpes.csv", header=TRUE) ## Problem 2
+lung$female <- lung$sex - 1
+surv.lung <- Surv(time=lung$time, event=(lung$status == 2), type="right")
+```
+
+## 1(a) Fit Cox PH with predictor: "female"
+```{r coxph_female}
+model.1a <- coxph(surv.lung ~ female, data=lung)
+summary(model.1a)
+```
+
+## 1(b) Fit Cox PH with predictors: "female", "age", "pat_karno"
+```{r coxph_female_age}
+model.1b <- coxph(surv.lung ~ female + age + pat_karno, data=lung)
+summary(model.1b)
+```
+
+## 1(c) Fit two Cox PH models
+### larger model
+```{r larger}
+lung$karno_high <- (lung$ph_karno >= 80) * lung$ph_karno
+lung$karno_low <-  (lung$ph_karno < 80) * lung$ph_karno
+lung$female_high <-  (lung$ph_karno >= 80) * lung$female
+lung$female_low <-  (lung$ph_karno < 80) * lung$female
+larger.model <- coxph(surv.lung ~ female_low + female_high + karno_low + karno_high + age, data=lung)
+summary(larger.model)
+## estimates of relevant HRs corresponding to each of the two subpopulations
+exp(coef(larger.model)["female_high"])
+exp(coef(larger.model)["female_low"])
+```
+### smaller model (could also be used to answer part b)
+```{r smaller}
+smaller.model <- coxph(surv.lung ~ female + karno_low + karno_high + age, data=lung)
+summary(smaller.model)
+```
+### testing whether the association differs between subpopulations
+```{r LRT}
+as.numeric(2 * (logLik(larger.model) - logLik(smaller.model)))
+```
+
+## 1(d) Fit stratified Cox PH model with additional predictors: female, ph_karno, age
+```{r coxph_stratified}
+lung$made_up_clinic <- as.factor(sample(1:10, size=nrow(lung), replace=TRUE))
+model.1d <- coxph(surv.lung ~ female + ph_karno + age + strata(made_up_clinic), data=lung)
+summary(model.1d)
+```
+
+## 1(e). Plot estimated survival functions based on model from 1(b)
+```{r coxph_plot_survival, fig.align="center", fig.height=5, fig.width=5}
+plot(survfit(model.1b, 
+             newdata=data.frame(female=0, age=50, pat_karno=65)),
+             conf.int=FALSE, lwd=2, col="blue", lty="dashed", 
+             xlab="Days", ylab="Survival Probability")
+lines(survfit(model.1b, 
+             newdata=data.frame(female=1, age=50, pat_karno=65)), 
+             conf.int=FALSE, lwd=2, col="blue", lty="solid")
+lines(survfit(model.1b, 
+             newdata=data.frame(female=0, age=50, pat_karno=90)), 
+             conf.int=FALSE, lwd=2, col="orange", lty="dashed")
+lines(survfit(model.1b, 
+             newdata=data.frame(female=1, age=50, pat_karno=90)), 
+             conf.int=FALSE, lwd=2, col="orange", lty="solid")
+legend("topright", cex=0.7,
+       legend=c("female=0, age=50, karno=65", "female=1, age=50, karno=65",
+                "female=0, age=50, karno=90", "female=1, age=50, karno=90"),
+       col=c("blue", "blue", "orange", "orange"), 
+       lty=c("dashed", "solid", "dashed", "solid"), lwd=c(2, 4))
+```
+
+# PROBLEM 2
+## Load data and create survival objects
+```{r load_herpes_data, message=FALSE}
+surv.herpes <- Surv(time=herpes$timetorec, event=herpes$event, type="right")
+herpes$made_up_clinic <- as.factor(sample(1:10, size=nrow(herpes), replace=TRUE))
+```
+
+## 2(a) Fit Cox PH with predictors: "duration", "male", "made_up_clinic"
+```{r problem_2a}
+model.2a <- coxph(surv.herpes ~ duration + male + made_up_clinic, data=herpes)
+summary(model.2a)
+```
+
+## 2(b) Fit stratified Cox PH with additional predictors: "duration" and "male"
+```{r problem_2b}
+model.2b <- coxph(surv.herpes ~ duration + male + strata(made_up_clinic), data=herpes)
+summary(model.2b)
+```
+
+## 2(c) 
+### Fit stratified Cox PH with additional predictors: "duration", "male", and "duration * male"
+```{r problem_2c}
+model.2c <- coxph(surv.herpes ~ duration + male + duration*male + strata(made_up_clinic), data=herpes)
+summary(model.2c)
+```
+### Estimate the HR (and corresponding CI) comparing individuals from a given clinic with male=1 and duration=35 to individuals from the same clinic with male=0 and duration=15
+```{r problem_2c_deltamethod}
+est <- exp(20 * coef(model.2c)["duration"]+
+           1  * coef(model.2c)["male"] +
+           35 * coef(model.2c)["duration:male"])
+se <- deltamethod(g=~exp((20*x1 + x2 + 35*x3)),
+                  mean=coef(model.2c)[c("duration", "male", "duration:male")],
+                  cov=vcov(model.2c)[c("duration", "male", "duration:male"),
+                                      c("duration", "male", "duration:male")],
+                  ses=TRUE)
+as.numeric(est)
+as.numeric(c(est - 1.96 * se,
+           est + 1.96 * se))
+```
+

@@ -12,6 +12,7 @@ fig_caption: yes
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE)
 ```
 
+
 ```{r set_decimals}
 
 library(pander)
@@ -434,3 +435,13 @@ c(medresidual.360$ci.lower, medresidual.360$ci.upper)
 
   
   
+
+```{r load_packages}
+
+library(survival)
+library(numDeriv)
+library(flexsurv)
+library(msm)
+
+```
+
