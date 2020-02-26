@@ -145,13 +145,38 @@ survfit.adix <- survfit(surv.adix ~ 1, data=adix, conf.type = "log-log")
 ```
 
 
-(a) The HR of exit from maintenance comparing individuals who receive a one mg higher dose of methadone is 0.965 (95% CI: 0.953-0.977). The HR comparing those who were incarcerated to those who were not is 1.386 (95% CI: 0.999-1.924).
+(a) The HR of exit from maintenance comparing individuals who receive a one mg higher dose of methadone, adjusting for incarceration status and clinic, is 0.965 (95% CI: 0.953-0.977). The HR comparing those who were incarcerated to those who were not, adjusting for methadone dose and clinic, is 1.386 (95% CI: 0.999-1.924). The HR comparing individuals from clinic 2 as compared to clinic 1, adjusting for methadone dose and incarceration status, is 0.364 (95% CI: 0.239-0.555).
 
 
-```{r}
+```{r, include=FALSE}
 
 model.2.1 <- coxph(surv.adix ~ dose + prison + clinic, data=adix)
 summary(model.2.1)
 
 ```
+
+
+(b) The HR of exit from maintenance associated with an one mg increase in methadone dose, adjusting for incarceration history and clinic, is 0.966 (95% CI: 0.953-0.978). The HR comparing those that have a previous history of incarceration to those that do not, adjusting for methadone dose and clinic, is 1.476 (95% CI: 1.060-2.056).
+
+<br>
+
+Using clinic as a stratifying variable allows for a more flexible model - we are not forcing the baseline hazard function to be proportional across levels of the stratifying variable (clinic in this case). This is useful since we don't necessarily care about the HR comparing across levels of clinic. This does not change the interpretation of our estimates. It did not change our estimates much, except that our HR comparing incarceration status is now significant at the 0.05 level where it had been just barely not significant in the non-stratified model.
+
+```{r, include=FALSE}
+
+model.2.2 <- coxph(surv.adix ~ dose + prison + strata(clinic), data=adix)
+summary(model.2.2)
+
+```
+
+
+(c)
+
+```{r}
+
+model.2.3 <- coxph(surv.adix ~ dose + strata(clinic) + dose*prison, data=adix)
+summary(model.2.3)
+
+```
+
 
