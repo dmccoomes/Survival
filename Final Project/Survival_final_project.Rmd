@@ -13,6 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r install_packages}
 
 if (!require(kableExtra)) install.packages("kableExtra")
+if (!require(flexsurv)) install.packages("flexsurv")
+if (!require(survMisc)) install.packages("survMisc")
+if (!require(msm)) install.packages("msm")
 
 
 ```
@@ -25,6 +28,11 @@ library(tidyverse)
 library(knitr)
 library(kableExtra)
 #source("getmedianres.R")
+library(survival) 
+library(flexsurv)
+library(survMisc) # for Wilcoxon-Gehan-Breslow test 
+library(msm)
+
 
 ```
 
@@ -36,4 +44,66 @@ link = "https://github.com/dmccoomes/Survival/raw/master/Final%20Project/Data/bm
 data <- read.csv(url(link), header=TRUE)
 
 ```
+
+
+
+```{r fit_survival}
+
+surv.luke.1 <- Surv(time=data$tdfs, event=data$deltadfs, type="right")
+
+```
+
+
+###Question 3:
+  
+  We're interested in finding the association of any of the baseline factors with the outcome:
+  
+   - patient age                                                       (age: years)
+   - patient gender                                                    (male: 1=male, 0=female)
+   - donor age                                                         (donorage: years)
+   - donor gender                                                      (donormale: 1=male, 0=female)
+   - patient CMV status                                                (cmv: 1=CMV positive, 0=CMV negative)
+   - donor CMV status                                                  (donorcmv: 1=CMV+, 0=CMV-)
+   - wait time from diagnosis to transplant                            (waittime: waiting time until transplant (in days))
+   - disease group                                                     (disgroup: 1=ALL, 2=AML low risk, 3=AML high risk)
+   - FAB classification                                                (fab: 1=FAB grade 4 or 5 and AML, 0=otherwise)
+   - prophylactic use of methotrexate to prevent aGVHD                 (mtx: 1=Yes, 0=No)
+
+
+```{r fit_baseline}
+
+#first, fit a Cox PH model including all baseline covariates
+
+model.base.1 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx, data=data)
+summary(model.base.1)
+
+#second, are any of these variables associated with difference by themselves
+model.base.age <- coxph(surv.luke.1 ~ age, data=data)
+model.base.male <- coxph(surv.luke.1 ~ male, data=data)
+model.base.donorage <- coxph(surv.luke.1 ~ donorage, data=data)
+model.base.donormale <- coxph(surv.luke.1 ~ donormale, data=data)
+model.base.cmv <- coxph(surv.luke.1 ~ cmv, data=data)
+model.base.donorcmv <- coxph(surv.luke.1 ~ donorcmv, data=data)
+model.base.waittime <- coxph(surv.luke.1 ~ waittime, data=data)
+model.base.disgroup <- coxph(surv.luke.1 ~ disgroup, data=data)
+model.base.fab <- coxph(surv.luke.1 ~ fab, data=data)
+model.base.mtx <- coxph(surv.luke.1 ~ mtx, data=data)
+
+summary(model.base.age)
+summary(model.base.male)
+summary(model.base.donorage)
+summary(model.base.donormale)
+summary(model.base.cmv)
+summary(model.base.donorcmv)
+summary(model.base.waittime)
+summary(model.base.disgroup)
+summary(model.base.fab)
+summary(model.base.mtx)
+
+#build table of z-scores for individual models
+est.male <- summary(model.base.age)[, "Pr(>|z|)"]
+est.male
+
+```
+
 
