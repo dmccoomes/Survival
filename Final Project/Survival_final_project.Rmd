@@ -1,22 +1,34 @@
 ---
 title: "Survival - Final Project"
 author: "David Coomes"
-date: "February 19, 2020"
-output: html_document
+date: "February 26, 2020"
+output: 
+   html_document:
+     theme: cosmo
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+```{r install_knitr, include=FALSE}
+
+if (!require(knitr)) install.packages("knitr")
+library(knitr)
+
 ```
 
 
-```{r install_packages}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r install_packages, include=FALSE}
 
 if (!require(kableExtra)) install.packages("kableExtra")
 if (!require(flexsurv)) install.packages("flexsurv")
 if (!require(survMisc)) install.packages("survMisc")
 if (!require(msm)) install.packages("msm")
-
+if (!require(tidyverse)) install.packages("tidyverse")
+if (!require(tableone)) install.packages("tableone")
 
 ```
 
@@ -32,6 +44,9 @@ library(survival)
 library(flexsurv)
 library(survMisc) # for Wilcoxon-Gehan-Breslow test 
 library(msm)
+library(tableone)
+library(compareGroups)
+library(table1)
 
 
 ```
@@ -53,8 +68,61 @@ surv.luke.1 <- Surv(time=data$tdfs, event=data$deltadfs, type="right")
 
 ```
 
+<br>
 
-###Question 3:
+## **Question 1**
+
+<br>
+
+```{r fit_parametric, include=FALSE}
+
+#fit KM curve
+survfit.luke.1 <- survfit(surv.luke.1 ~ 1, data=data, conf.type="log-log")
+summary(survfit.luke.1)
+
+```
+
+
+```{r plot_km}
+
+#plot KM curve
+plot(survfit.luke.1,
+     conf.int=TRUE,
+     main="KM survival estimate of entire cohort (includes 95% CI)",
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     col = c("blue", "light blue", "light blue"),
+     lty = c("solid", "dashed", "dashed"),
+     lwd = c(2,1,1))
+     
+
+```
+
+There were 137 individuals in the cohort. During the study period, 83 (61%) of them had the event of interest (relapse or death). The median survival time in this cohort was 481 days (95% CI: 363-748). 
+
+```{r, include=FALSE}
+
+summary(survfit.luke.1)$table
+
+```
+
+<br>
+
+## **Question 2:**
+
+Generating a table 1.
+
+```{r}
+
+CreateTableOne(data=data)
+
+
+```
+
+
+<br>
+
+## **Question 3:**
   
   We're interested in finding the association of any of the baseline factors with the outcome:
   
@@ -69,15 +137,65 @@ surv.luke.1 <- Surv(time=data$tdfs, event=data$deltadfs, type="right")
    - FAB classification                                                (fab: 1=FAB grade 4 or 5 and AML, 0=otherwise)
    - prophylactic use of methotrexate to prevent aGVHD                 (mtx: 1=Yes, 0=No)
 
+<br>
 
-```{r fit_baseline}
+
+**Table 1: Baseline factor association with survival using a univariate model**
+
+```{r multiple_univariate}
+
+#run each cox ph model
+covariates <- c("age", "male", "donorage", "donormale", "cmv", "donorcmv", "waittime", "disgroup", "fab", "mtx")
+univ_formulas <- sapply(covariates,
+                        function(x) as.formula(paste('surv.luke.1 ~', x)))
+                        
+univ_models <- lapply(univ_formulas, function(x){coxph(x, data=data)})
+
+#get results
+univ_results <- lapply(univ_models,
+                       function(x){
+                          x <- summary(x)
+                          #p.value <- signif(x$wald["pvalue"], digits=3)
+                          p.value <- round(x$wald["pvalue"], 3)
+                          wald.test <- round(x$wald["test"], 3)
+                          beta <- signif(x$coef[1], 3); 
+                          HR <- round(x$coef[2], 3);
+                          HR.confint.lower <- round(x$conf.int[,"lower .95"], 3)
+                          HR.confint.upper <- round(x$conf.int[,"upper .95"], 3)
+                          #HR <- paste0(HR, " (",
+                          #             HR.confint.lower, "-", HR.confint.upper, ")")
+                          #res <- c(beta, HR, wald.test, p.value)       only including HR, 95% CI, and p value
+                          res <- c(HR, HR.confint.lower, HR.confint.upper, p.value)
+                          #names(res) <- c("beta", "HR (95% CI for HR", "wald.test", "p.value")
+                          names(res) <- c("HR", "95% CI lower", "95% CI upper", "p value")
+                          return(res)
+                       })
+
+res <- t(as.data.frame(univ_results, check.names=FALSE))
+#as.data.frame(res)
+
+
+kable(res, caption="Cox PH HR using univariate model")  %>%
+   kable_styling(bootstrap_options = "striped", full_width = FALSE, position="left") %>%
+   column_spec(1, width="4cm") %>%
+   row_spec(9, bold=T)
+
+
+
+```
+
+<br>
+
+**Table 2: Baseline factor association with survival while adjusting for other baseline factors**
+
+```{r fit_baseline, include=FALSE}
 
 #first, fit a Cox PH model including all baseline covariates
 
 model.base.1 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx, data=data)
 summary(model.base.1)
 
-#second, are any of these variables associated with difference by themselves
+#second, are any of these variables associated with difference by themselves - I did this in the box above
 model.base.age <- coxph(surv.luke.1 ~ age, data=data)
 model.base.male <- coxph(surv.luke.1 ~ male, data=data)
 model.base.donorage <- coxph(surv.luke.1 ~ donorage, data=data)
@@ -101,9 +219,38 @@ summary(model.base.fab)
 summary(model.base.mtx)
 
 #build table of z-scores for individual models
-est.male <- summary(model.base.age)[, "Pr(>|z|)"]
-est.male
 
 ```
 
 
+```{r, include=FALSE}
+
+summary(model.base.1)
+
+```
+
+
+
+```{r}
+
+p.value <- as.data.frame(summary(model.base.1)$coefficients[,5])
+HR <- as.data.frame(summary(model.base.1)$coefficients[,2])
+conf.int.low <- as.data.frame(summary(model.base.1)$conf.int[,3])
+conf.int.high <- as.data.frame(summary(model.base.1)$conf.int[,4])
+
+est <- cbind(HR, conf.int.low, conf.int.high, p.value)
+names(est) <- c("HR", "HR 95% CI low", "HR 95% CI high", "p value")
+est <- round(est, digits=3)
+#est
+
+kable(est, caption="Cox PH HR using multivariate model")  %>%
+   kable_styling(bootstrap_options = "striped", full_width = FALSE, position="left") %>%
+   column_spec(1, width="4cm") %>%
+   row_spec(9, bold=T)
+
+```
+
+
+<br>
+
+Of the measured baseline variables, only the FAB classification is significantly associated with differences in disease free survival. This association is significant using a univariate Cox PH model with FAB as the independent variable (p=0.004) and it remains significant after adjusting for all other baseline characteristics in a multivariate Cox PH model (p=0.016). 
