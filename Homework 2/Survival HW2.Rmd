@@ -3,8 +3,8 @@ title: "Biostat 537 HW 2"
 author: "David Coomes"
 date: "2/5/2020"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 fig_caption: yes
 ---
 
@@ -377,7 +377,7 @@ Time (t)          Median residual time
 8 months          427 days (95% CI: 341-520)
 12 months         389 days (95% CI: 301-461)
 
-
+These two are slightly different, and I believe this is because of a small rounding error in which I cannot see past three digits when looking at the Kaplan-Meier estimators.
 
 
 ```{r mean_residual_time, include=FALSE}
@@ -431,6 +431,13 @@ c(medresidual.360$ci.lower, medresidual.360$ci.upper)
 
 ```
 
+<br>
+<br>
 
-  
+###Appendix
+
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+
+```
+
   
