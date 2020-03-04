@@ -17,7 +17,7 @@ library(knitr)
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
@@ -29,6 +29,8 @@ if (!require(survMisc)) install.packages("survMisc")
 if (!require(msm)) install.packages("msm")
 if (!require(tidyverse)) install.packages("tidyverse")
 if (!require(tableone)) install.packages("tableone")
+if (!require(compareGroups)) install.packages("compareGroups")
+if (!require(table1)) install.packages("table1")
 
 ```
 
@@ -178,7 +180,7 @@ res <- t(as.data.frame(univ_results, check.names=FALSE))
 kable(res, caption="Cox PH HR using univariate model")  %>%
    kable_styling(bootstrap_options = "striped", full_width = FALSE, position="left") %>%
    column_spec(1, width="4cm") %>%
-   row_spec(9, bold=T)
+   row_spec(9:10, bold=T)
 
 
 
@@ -223,9 +225,11 @@ summary(model.base.mtx)
 ```
 
 
-```{r, include=FALSE}
+```{r}
 
 summary(model.base.1)
+
+#FAB is significant (0.0160) and MTX is significant (0.080). 
 
 ```
 
@@ -246,11 +250,118 @@ est <- round(est, digits=3)
 kable(est, caption="Cox PH HR using multivariate model")  %>%
    kable_styling(bootstrap_options = "striped", full_width = FALSE, position="left") %>%
    column_spec(1, width="4cm") %>%
-   row_spec(9, bold=T)
+   row_spec(9:10, bold=T)
+
+```
+
+
+
+```{r logrank_test, include=FALSE}
+
+survdiff(surv.luke.1 ~ male, data=data, rho=0)             #p-value 0.3
+survdiff(surv.luke.1 ~ donormale, data=data, rho=0)        #        1
+survdiff(surv.luke.1 ~ disgroup, data=data, rho=0)         #        0.001**
+survdiff(surv.luke.1 ~ cmv, data=data, rho=0)              #        0.5
+survdiff(surv.luke.1 ~ donorcmv, data=data, rho=0)         #        0.8
+survdiff(surv.luke.1 ~ fab, data=data, rho=0)              #        0.004**
+survdiff(surv.luke.1 ~ mtx, data=data, rho=0)              #        0.09*
+
+```
+
+
+
+```{r plot_one_NA_compare}
+
+survfit.luke.disgroup <- survfit(surv.luke.1 ~ disgroup, data=data, conf.type="log-log")
+plot(survfit.luke.disgroup,
+     fun="cumhaz",
+     col=c("blue", "red", "orange"), lwd=2, lty=c("solid", "solid", "dashed"),
+     xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by disease group")
+legend("topleft", c("ALL", "AML low", "AML high"), col=c("blue", "red", "orange"), lwd=c(2,2,2), lty=c("solid", "solid", "dashed"))
+
+
+survfit.luke.fab <- survfit(surv.luke.1 ~ fab, data=data, conf.type="log-log")
+plot(survfit.luke.fab,
+     fun="cumhaz",
+     col=c("blue", "red"), lwd=2, lty=c("solid", "solid"),
+     xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by FAB")
+legend("topleft", c("FAB 4 or 5 & AML", "other"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "solid"))
+
+
+survfit.luke.mtx <- survfit(surv.luke.1 ~ mtx, data=data, conf.type="log-log")
+plot(survfit.luke.mtx,
+     fun="cumhaz",
+     col=c("blue", "red"), lwd=2, lty=c("solid", "solid"),
+     xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by MTX")
+legend("bottomright", c("No methotrexate use", "Methotrexate use"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "solid"))
+
+```
+
+
+```{r}
+
+#plot KM curve
+plot(survfit.luke.disgroup,
+     conf.int=FALSE,
+     main="KM survival estimate by disease group",
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     col = c("blue", "orange", "red"),
+     lty = c("solid", "dashed", "solid"),
+     lwd = c(2,2,2))
+legend("topright", c("ALL", "AML low", "AML high"), col=c("blue", "red", "orange"), lwd=c(2,2,2), lty=c("solid", "solid", "dashed"))
+
+
+plot(survfit.luke.fab,
+     conf.int=FALSE,
+     main="KM survival estimate by FAB classification",
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(2,2))
+legend("topright", c("FAB 4 or 5 & AML", "other"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+plot(survfit.luke.mtx,
+     conf.int=FALSE,
+     main="KM survival estimate by Methotrexate use",
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(2,2))
+legend("topright", c("No methotrexate use", "Methotrexate use"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"))
+
+```
+
+
+```{r wilcoxon_gehan_breslow_luke}
+
+library(survMisc)
+
+survfit.luke.male <- survfit(surv.luke.1 ~ male, data=data, conf.type="log-log")
+survfit.luke.donormale <- survfit(surv.luke.1 ~ donormale, data=data, conf.type="log-log")
+survfit.luke.cmv <- survfit(surv.luke.1 ~ cmv, data=data, conf.type="log-log")
+survfit.luke.donorcmv <- survfit(surv.luke.1 ~ donorcmv, data=data, conf.type="log-log")
+survfit.luke.mtx <- survfit(surv.luke.1 ~ mtx, data=data, conf.type="log-log")
+
+
+comp(ten(survfit.luke.male))$tests          #p-value = 0.236
+comp(ten(survfit.luke.donormale))$tests     #          0.930
+comp(ten(survfit.luke.disgroup))$tests      #          0.051*
+comp(ten(survfit.luke.cmv))$tests           #          0.397
+comp(ten(survfit.luke.donorcmv))$tests      #          0.744
+comp(ten(survfit.luke.fab))$tests           #          0.008**
+comp(ten(survfit.luke.mtx))$tests           #          0.019**
+
+
+
 
 ```
 
 
 <br>
 
-Of the measured baseline variables, only the FAB classification is significantly associated with differences in disease free survival. This association is significant using a univariate Cox PH model with FAB as the independent variable (p=0.004) and it remains significant after adjusting for all other baseline characteristics in a multivariate Cox PH model (p=0.016). 
+Of the measured baseline variables, when using a Cox PH model, the FAB classification and prophylactic use of methotrexate (MTX) are significantly associated with differences in disease free survival. For FAB classification, this association is significant at the 90% confidence level using a univariate Cox PH model with FAB as the independent variable (p=0.004) and it remains significant after adjusting for all other baseline characteristics in a multivariate Cox PH model (p=0.016). For MTX, this association is significant at the 90% confidence level using a univariate Cox PH model with MTX as the independent variable (p=0.094) and it remains significant after adjusting for all other baseline characteristics in a multivariate Cox PH model (p=0.080).   
+
+When fiting non-parametric survival models, and comparing Nelson-Aelen Cumulative Hazards, there are three baseline variables that are significantly associated with differences in disease free survival. Using the logrank test to compare groups, disease group (p=0.001), FAB classification (p=0.004), and MTX use (p=0.09) are all significantly associated with differences in cumulative hazard at the 90% confidence level. Using the Wilcoxan-Gehan-Breslow test, these three baseline measurements remain significantly different at the 90% confidence level. 
