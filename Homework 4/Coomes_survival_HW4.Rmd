@@ -77,7 +77,6 @@ weibull.adix.est %>%
  
 My results from the AFT model agree qualitatively with my results from the Cox PH model. In the AFT model we see that there is a slight (and significant) increase in time to exit from maintenance associated with an increase in methadone dose, which corresponds to a slight decrease in HR in the Cox model, adjusting for clinic and history of previous incarceration for both models. Similarily, we see a large increase in time to exit associated with clinic 2 as compared to clinic 1, and a large reduction in HR. Finally, there is a small (and non-significant) decrease in time to exit from maintenance associated with a history of previous incarceration, which corresponds to an increase in the HR (also non-significant). 
 
-<br>
 
 When using a generalized gamma baseline distribution, the dose time ratio estimate decreases by 0.68%, the clinic time ratio increases by 0.79%, and the incarceration time ratio increases by 4.91%. 
 
@@ -103,9 +102,148 @@ perc_diff
 
 ```
 
+<br> 
+
+(b) The ratio of mean time to exit comparing an individual from clinic 2 without a history of incarceration and administered a dose of 40 mg/day to individuals from clinic 1 with a history of incarceration and administered a dose of 100 mg/day is **0.590 (95% CI: 0.305-1.143).**
 
 
-(b)
 
+
+```{r AFT_compare, include=FALSE}
+
+AFT.point <- (40-100) * coef(weibull.adix.1)["dose"] + 
+                  (2-1) * coef(weibull.adix.1)["clinic"] + 
+                  (0-1) * coef(weibull.adix.1)["prison"]
+
+AFT.se <- deltamethod(g = ~(40-100) * x1 + (2-1) * x2 + (0-1) * x3,
+                      mean = coef(weibull.adix.1)[c("dose", "clinic", "prison")],
+                      cov=vcov(weibull.adix.1)[c("dose", "clinic", "prison"),
+                                               c("dose", "clinic", "prison")],
+                      ses=TRUE)
+
+#point estimate
+exp(AFT.point)
+
+#confindene interval
+exp(c(AFT.point - 1.96*AFT.se,
+      AFT.point + 1.96*AFT.se))
+
+```
+
+
+
+The median time until exit for a person from clinic 2 without a history of incarceration who is administered a dose of 40 mg/day is **509 days (95% CI: 334-684).** The median time unitl exit for a person from clinic 1 with a history of incarceration who is administered a dose of 100 mg/day is **862 days (95% CI: 511-1213).**
+
+```{r median_survival, include=FALSE}
+
+#median for person from clinic 2 on 40 mg/day with no history of incarceration
+AFT.median.1 <- exp(40 * coef(weibull.adix.1)["dose"] + 
+                      2 * coef(weibull.adix.1)["clinic"]) * 
+        log(2) ^ (1/exp(coef(weibull.adix.1)["shape"])) * 
+        exp(coef(weibull.adix.1)["scale"])
+
+AFT.median.1.se <- deltamethod(g = ~exp(40*x1 + 2*x2) 
+                               * log(2) ^ (1/exp(x4)) * exp(x5),
+                               mean = coef(weibull.adix.1)[c("dose", "clinic", "prison", "shape", "scale")],
+                               cov=vcov(weibull.adix.1)[c("dose", "clinic", "prison", "shape", "scale"),
+                                                        c("dose", "clinic", "prison", "shape", "scale")],
+                               ses=TRUE)
+
+#point estimate
+AFT.median.1
+#confidence interval
+c(AFT.median.1 - 1.96*AFT.median.1.se,
+  AFT.median.1 + 1.96*AFT.median.1.se)
+
+
+#median for person from clinic 1 on 100 mg/day with a history of incarceration
+AFT.median.2 <- exp(100 * coef(weibull.adix.1)["dose"] + 
+                      1 * coef(weibull.adix.1)["clinic"] + 
+                      1 * coef(weibull.adix.1)["prison"]) * 
+        log(2) ^ (1/exp(coef(weibull.adix.1)["shape"])) * 
+        exp(coef(weibull.adix.1)["scale"])
+
+AFT.median.2.se <- deltamethod(g = ~exp(100*x1 + 1*x2 + 1*x3) 
+                               * log(2) ^ (1/exp(x4)) * exp(x5),
+                               mean = coef(weibull.adix.1)[c("dose", "clinic", "prison", "shape", "scale")],
+                               cov=vcov(weibull.adix.1)[c("dose", "clinic", "prison", "shape", "scale"),
+                                                        c("dose", "clinic", "prison", "shape", "scale")],
+                               ses=TRUE)
+
+#point estimate
+AFT.median.2
+#confidence interval
+c(AFT.median.2 - 1.96*AFT.median.2.se,
+  AFT.median.2 + 1.96*AFT.median.2.se)
+
+
+```
+
+
+<br>
+
+(c) The time ratio comparing patients who were administered a dose of 80 mg/day to those administered 60 mg/day *with* a history of previous incarceration and from the same clinic is **1.507 (95% CI: 1.135-2.002).** The time ratio comparing patients who were administed a dose of 80 mg/day to those administered 60 mg/day *wihout* a history of previous incarceration and from the same clinic is **1.712 (95% CI: 1.362-2.152).** These two subgroup-specific time ratios are not significantly different from each other **(p=0.46)**.
+
+```{r new_weibull, include=FALSE}
+
+#fit new weibull AFT model
+weibull.adix.2 <- flexsurvreg(surv.adix ~ dose + clinic + prison + dose*prison, data=adix, dist="weibull")
+
+#weibull.adix.3 <- flexsurvreg(surv.adix ~ dose*prison + clinic, data=adix, dist="weibull")
+
+#get point estimate and CI comparing 80 to 60 mg/day for someone with a history of incarceration and from the same clinic
+AFT.point.2 <- (80-60) * coef(weibull.adix.2)["dose"] + 
+                  (80-60) * coef(weibull.adix.2)["dose:prison"]
+
+AFT.se.2 <- deltamethod(g = ~(80-60) * x1 + (80-60) * x4,
+                        mean = coef(weibull.adix.2)[c("dose", "clinic", "prison", "dose:prison")],
+                        cov=vcov(weibull.adix.2)[c("dose", "clinic", "prison", "dose:prison"),
+                                                 c("dose", "clinic", "prison", "dose:prison")],
+                        ses=TRUE)
+
+#point estimate
+exp(AFT.point.2)
+
+#confidence interval
+exp(c(AFT.point.2 - 1.96*AFT.se.2,
+       AFT.point.2 + 1.96*AFT.se.2))
+
+
+#get point estimate and CI comparing 80 to 60 mg/day for someone without a history of incarceration and from the same clinic
+AFT.point.3 <- (80-60) * coef(weibull.adix.2)["dose"] 
+
+AFT.se.3 <- deltamethod(g = ~(80-60) * x1,
+                        mean = coef(weibull.adix.2)[c("dose", "clinic", "prison", "dose:prison")],
+                        cov=vcov(weibull.adix.2)[c("dose", "clinic", "prison", "dose:prison"),
+                                                 c("dose", "clinic", "prison", "dose:prison")],
+                        ses=TRUE)
+
+#point estimate
+exp(AFT.point.3)
+
+#confidence interval
+exp(c(AFT.point.3 - 1.96*AFT.se.3,
+       AFT.point.3 + 1.96*AFT.se.3))
+
+```
+
+
+
+```{r interaction_test, include=FALSE}
+
+#using wald test
+SE.int.term <- deltamethod(g = ~exp((80-60) * x1), 
+                            mean=coef(weibull.adix.2)["dose:prison"],
+                            cov=vcov(weibull.adix.2)["dose:prison", "dose:prison"],
+                            ses=TRUE)
+                           
+wald.test.stat <- (exp((80-60) * coef(weibull.adix.2)["dose:prison"])-1) / SE.int.term
+
+wald.test.stat
+
+#wald p-value
+2 * pnorm(-abs(wald.test.stat))
+
+```
 
 

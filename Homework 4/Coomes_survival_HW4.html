@@ -254,12 +254,16 @@ prison
 </table>
 <p><br></p>
 <p>My results from the AFT model agree qualitatively with my results from the Cox PH model. In the AFT model we see that there is a slight (and significant) increase in time to exit from maintenance associated with an increase in methadone dose, which corresponds to a slight decrease in HR in the Cox model, adjusting for clinic and history of previous incarceration for both models. Similarily, we see a large increase in time to exit associated with clinic 2 as compared to clinic 1, and a large reduction in HR. Finally, there is a small (and non-significant) decrease in time to exit from maintenance associated with a history of previous incarceration, which corresponds to an increase in the HR (also non-significant).</p>
-<pre><code>##          est  L95%  U95%
-## dose   1.018 1.010 1.025
-## clinic 2.048 1.512 2.774
-## prison 0.834 0.699 0.995</code></pre>
-<pre><code>##      dose    clinic    prison 
-## 0.9931707 1.0078740 1.0490566</code></pre>
+<p>When using a generalized gamma baseline distribution, the dose time ratio estimate decreases by 0.68%, the clinic time ratio increases by 0.79%, and the incarceration time ratio increases by 4.91%.</p>
+<p><br></p>
+<ol start="2" style="list-style-type: lower-alpha">
+<li>The ratio of mean time to exit comparing an individual from clinic 2 without a history of incarceration and administered a dose of 40 mg/day to individuals from clinic 1 with a history of incarceration and administered a dose of 100 mg/day is <strong>0.590 (95% CI: 0.305-1.143).</strong></li>
+</ol>
+<p>The median time until exit for a person from clinic 2 without a history of incarceration who is administered a dose of 40 mg/day is <strong>509 days (95% CI: 334-684).</strong> The median time unitl exit for a person from clinic 1 with a history of incarceration who is administered a dose of 100 mg/day is <strong>862 days (95% CI: 511-1213).</strong></p>
+<p><br></p>
+<ol start="3" style="list-style-type: lower-alpha">
+<li>The time ratio comparing patients who were administered a dose of 80 mg/day to those administered 60 mg/day <em>with</em> a history of previous incarceration and from the same clinic is <strong>1.507 (95% CI: 1.135-2.002).</strong> The time ratio comparing patients who were administed a dose of 80 mg/day to those administered 60 mg/day <em>wihout</em> a history of previous incarceration and from the same clinic is <strong>1.712 (95% CI: 1.362-2.152).</strong> These two subgroup-specific time ratios are not significantly different from each other (p=0.46).</li>
+</ol>
 </div>
 
 
