@@ -1,0 +1,111 @@
+---
+title: "Survival HW4"
+author: "David Coomes"
+date: "Due March 9, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r install_packages, include=FALSE}
+
+if (!require(kableExtra)) install.packages("kableExtra")
+if (!require(flexsurv)) install.packages("flexsurv")
+if (!require(survMisc)) install.packages("survMisc")
+if (!require(msm)) install.packages("msm")
+if (!require(tidyverse)) install.packages("tidyverse")
+if (!require(tableone)) install.packages("tableone")
+if (!require(compareGroups)) install.packages("compareGroups")
+if (!require(table1)) install.packages("table1")
+
+```
+
+
+
+```{r load_packages, include=FALSE}
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+#source("getmedianres.R")
+library(survival) 
+library(flexsurv)
+library(survMisc) # for Wilcoxon-Gehan-Breslow test 
+library(msm)
+library(tableone)
+library(compareGroups)
+library(table1)
+
+
+```
+
+
+```{r load_data2}
+
+link = "https://github.com/dmccoomes/Survival/raw/master/Homework%201/addicts.csv"
+adix <- read.csv(link)
+
+surv.adix <- Surv(time=adix$time, event=adix$event, type="right")
+survfit.adix <- survfit(surv.adix ~ 1, data=adix, conf.type = "log-log")
+
+
+```
+
+### Question 1
+
+(a) 
+
+**Table 1. Time ratios for Accelerated Failure Time model**
+
+```{r fit_weibull_AFT, echo=FALSE}
+
+weibull.adix.1 <- flexsurvreg(surv.adix ~ dose + clinic + prison, data=adix, dist="weibull")
+#weibull.adix.1
+
+weibull.adix.est <- round(exp(weibull.adix.1$res[3:5, 1:3]), 3)
+
+weibull.adix.est %>%
+  kable(col.names = c("Estimate", "95% CI Lower", "95% CI Upper")) %>%
+  kable_styling(full_width = F,
+                position="left")
+
+```
+ <br>
+ 
+My results from the AFT model agree qualitatively with my results from the Cox PH model. In the AFT model we see that there is a slight (and significant) increase in time to exit from maintenance associated with an increase in methadone dose, which corresponds to a slight decrease in HR in the Cox model, adjusting for clinic and history of previous incarceration for both models. Similarily, we see a large increase in time to exit associated with clinic 2 as compared to clinic 1, and a large reduction in HR. Finally, there is a small (and non-significant) decrease in time to exit from maintenance associated with a history of previous incarceration, which corresponds to an increase in the HR (also non-significant). 
+
+<br>
+
+When using a generalized gamma baseline distribution, the dose time ratio estimate decreases by 0.68%, the clinic time ratio increases by 0.79%, and the incarceration time ratio increases by 4.91%. 
+
+```{r fit_coxPH, include=FALSE}
+
+cox.1 <- coxph(surv.adix ~ dose + clinic + prison, data=adix)
+cox.1
+
+```
+
+
+```{r AFT_gengamma, include=FALSE}
+
+gengamma.adix.1 <- flexsurvreg(surv.adix ~ dose + clinic + prison, data=adix, dist="gengamma")
+#gengamma.adix.1
+
+gengamma.adix.est <- round(exp(gengamma.adix.1$res[4:6, 1:3]), 3)
+#gengamma.adix.est
+
+perc_diff <- (gengamma.adix.est[,1]-weibull.adix.est[,1])/weibull.adix.est[,1]
+
+perc_diff
+
+```
+
+
+
+(b)
+
+
+
