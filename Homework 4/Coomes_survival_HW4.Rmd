@@ -2,11 +2,13 @@
 title: "Survival HW4"
 author: "David Coomes"
 date: "Due March 9, 2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 ```
 
 
@@ -246,4 +248,120 @@ wald.test.stat
 
 ```
 
+
+
+<br>
+
+### Question 2
+
+```{r load_diab_data, include=FALSE}
+
+library(haven)
+link = "https://github.com/dmccoomes/Survival/raw/master/Homework%204/diabetesST11.dta"
+diab <- read_dta(url(link))
+
+#create study time in years variable
+diab$time_year <- diab$time/12
+#create age at blindness
+diab$age_blind <- diab$age + diab$time_year
+#subset data to include only untreated eyes
+diab.untreat <- diab[which(diab$treat == 0),]
+
+
+```
+
+
+```{r create_survival, include=FALSE}
+
+#creating survival function that includes left truncation
+surv.diab.lt <- with(diab.untreat, Surv(age, age_blind, status))
+survfit.diab.lt <- survfit(surv.diab.lt ~ 1, data=diab.untreat, conf.type = "log-log")
+
+#creating survival function that does NOT include left truncation
+surv.diab <- with(diab.untreat, Surv(age_blind, status))
+survfit.diab <- survfit(surv.diab ~ 1, data=diab.untreat, conf.type = "log-log")
+
+#fitting a curve that is time since diagnosis
+surv.diab.3 <- with(diab.untreat, Surv(time, status))
+survfit.diab.3 <- survfit(surv.diab.3 ~ 1, data=diab.untreat, conf.type = "log-log")
+
+```
+
+
+```{r median_survtime, include=FALSE}
+
+summary(survfit.diab.lt)$table
+
+```
+
+(a) **Figure 1. Kaplan Meier survival curve showing age at blindness due to diabetic retinopathy in untreated eyes, accounting for delayed entry.** The median age at blindness is 24.4 (95% CI: 20.5-26.5).
+
+```{r plot_KM}
+
+plot(survfit.diab.lt,
+     conf.int=TRUE,
+     main="Kaplan-Meier survival estimate accounting for left truncation \n(includes 95% CI)",
+     ylab="Survival probability", xlab="Age",
+     col=c("blue", "light blue", "light blue"),
+     lty=c("solid", "dashed", "dashed"),
+     lwd=c(2, 1, 1),
+     caption ="caption")
+
+
+```
+
+
+```{r median_survtime2, include=FALSE}
+
+summary(survfit.diab)$table
+
+```
+
+ <br>
+
+**Figure 2. Kaplan Meier survival curve showing age at blindness due to diabetic retinopathy in untreated eyes *without* accounting for delayed entry.** The median age at blindness is 44.5 (95% CI: 40.8-48.2).  
+
+```{r plot_KM2}
+
+plot(survfit.diab,
+     conf.int=TRUE,
+     main="Kaplan-Meier survival estimate not accounting for left truncation \n(includes 95% CI)",
+     ylab="Survival probability", xlab="Age",
+     col=c("blue", "light blue", "light blue"),
+     lty=c("solid", "dashed", "dashed"),
+     lwd=c(2, 1, 1),
+     caption ="caption")
+
+
+```
+
+
+```{r plot_KM3, include=FALSE}
+
+plot(survfit.diab.3,
+     conf.int=TRUE,
+     main="Kaplan-Meier survival estimate not accounting for left truncation \n(includes 95% CI)",
+     ylab="Survival probability", xlab="Time since diagnosis (months)",
+     col=c("blue", "light blue", "light blue"),
+     lty=c("solid", "dashed", "dashed"),
+     lwd=c(2, 1, 1),
+     caption ="caption")
+
+
+```
+
+
+<br>
+
+(b) The results that estimate age at blindness due to DB while accounting for left-truncation do cause some concern for me. Of particular concern is the steep reduction in the survival curve at age 20, and the fact that the survival falls to 0 by age 45 despite the fact that there are some individuals in our data set that do not join the study until after this age. This causes me to wonder whether the age at blindness may be associated with the age at onset of DB - which would violate the independence assumption required to valid delayed entry adjustment.
+
+
+\newpage
+
+
+###Appendix
+
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+
+```
 
