@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  8 MAR 2020 18:51
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  9 MAR 2020 22:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -832,105 +832,105 @@ Package pdftex.def Info: Coomes_survival_HW4_files/figure-latex/plot_KM2-1.pdf
 [2 <./Coomes_survival_HW4_files/figure-latex/plot_KM-1.pdf> <./Coomes_survival_
 HW4_files/figure-latex/plot_KM2-1.pdf>] [3]
 
-Package xcolor Warning: Incompatible color definition on input line 262.
+Package xcolor Warning: Incompatible color definition on input line 268.
 
-LaTeX Font Info:    Try loading font information for T1+lmtt on input line 263.
+LaTeX Font Info:    Try loading font information for T1+lmtt on input line 269.
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 264.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 270.
 
-Package xcolor Warning: Incompatible color definition on input line 501.
-
-
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Underfull \vbox (badness 3138) detected at line 501
+Package xcolor Warning: Incompatible color definition on input line 507.
+
+
+Underfull \vbox (badness 3138) detected at line 507
  []
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 [4]
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Underfull \vbox (badness 10000) detected at line 501
+Underfull \vbox (badness 10000) detected at line 507
  []
 
 
-Underfull \vbox (badness 10000) detected at line 501
+Underfull \vbox (badness 10000) detected at line 507
  []
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 [5]
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Underfull \vbox (badness 10000) detected at line 501
+Underfull \vbox (badness 10000) detected at line 507
  []
 
 
-Underfull \vbox (badness 10000) detected at line 501
+Underfull \vbox (badness 10000) detected at line 507
  []
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 [6]
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Underfull \vbox (badness 10000) detected at line 501
+Underfull \vbox (badness 10000) detected at line 507
  []
 
 
-Underfull \vbox (badness 10000) detected at line 501
+Underfull \vbox (badness 10000) detected at line 507
  []
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 [7]
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
 
-Package xcolor Warning: Incompatible color definition on input line 501.
+Package xcolor Warning: Incompatible color definition on input line 507.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 503.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 509.
 [8]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 503.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 509.
 (./Coomes_survival_HW4.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 503.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 503.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 509.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 509.
 Package rerunfilecheck Info: File `Coomes_survival_HW4.out' has not changed.
 (rerunfilecheck)             Checksum: 07B5ED49A21B35B4682990770BBEB7E8;278.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 503.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 509.
  ) 
 Here is how much of TeX's memory you used:
- 14664 strings out of 492649
- 212292 string characters out of 6129622
+ 14666 strings out of 492649
+ 212314 string characters out of 6129622
  380566 words of memory out of 5000000
  18255 multiletter control sequences out of 15000+600000
- 44507 words of font info for 63 fonts, out of 8000000 for 9000
+ 44590 words of font info for 64 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  34i,7n,38p,913b,409s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}</usr/local/
@@ -942,7 +942,7 @@ c/lm/lmri10.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/lm/lmri1
 2.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/public/lm/lmtk10.pfb></us
 r/local/texlive/2018/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/local/te
 xlive/2018/texmf-dist/fonts/type1/public/lm/lmtti10.pfb>
-Output written on Coomes_survival_HW4.pdf (8 pages, 226332 bytes).
+Output written on Coomes_survival_HW4.pdf (8 pages, 226829 bytes).
 PDF statistics:
  119 PDF objects out of 1000 (max. 8388607)
  93 compressed objects within 1 object stream

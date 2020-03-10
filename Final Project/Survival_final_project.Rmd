@@ -198,6 +198,10 @@ model.base.2 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + do
 data$country_us = ifelse((data$hospital==1 | data$hospital==4), 1, 0)
 model.base.3 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx + strata(country_us), data=data)
 
+#Creating model with just FAB and not including disease group
+model.base.4 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + fab + mtx, data=data)
+summary(model.base.4)
+
 
 
 #second, are any of these variables associated with difference by themselves - I did this in the box above
@@ -261,6 +265,8 @@ kable(est, caption="Cox PH HR using multivariate model")  %>%
    row_spec(9:10, bold=T)
 
 ```
+
+
 
 
 

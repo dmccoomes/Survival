@@ -355,6 +355,7 @@ plot(survfit.diab.3,
 
 (b) The results that estimate age at blindness due to DB while accounting for left-truncation do cause some concern for me. Of particular concern is the steep reduction in the survival curve at age 20, and the fact that the survival falls to 0 by age 45 despite the fact that there are some individuals in our data set that do not join the study until after this age. This causes me to wonder whether the age at blindness may be associated with the age at onset of DB - which would violate the independence assumption required to valid delayed entry adjustment.
 
+Another issue of concern is the flat survival until age 20. This is due to the fact that individuals were not enrolled in the study until age 20, however, this leads to biases in our estimates (overestimation of survival) since those that may have experienced blindness before age 20 could not be enrolled in this study.
 
 \newpage
 
