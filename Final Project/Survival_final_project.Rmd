@@ -31,6 +31,7 @@ if (!require(tidyverse)) install.packages("tidyverse")
 if (!require(tableone)) install.packages("tableone")
 if (!require(compareGroups)) install.packages("compareGroups")
 if (!require(table1)) install.packages("table1")
+if (!require(compareGroups)) install.packages("compareGroups", dep=TRUE)
 
 ```
 
@@ -47,7 +48,7 @@ library(flexsurv)
 library(survMisc) # for Wilcoxon-Gehan-Breslow test 
 library(msm)
 library(tableone)
-library(compareGroups)
+#library(compareGroups) - can't install package "officer"
 library(table1)
 
 
@@ -388,11 +389,19 @@ When fiting non-parametric survival models, and comparing Nelson-Aelen Cumulativ
 Based on the available data, is recovery of normal platelet levels associated to improved disease-free survival? Is it associated with a decreased risk of relapse?
 
 I believe this is a question that includes time varying covariates:
-  Outcome = disease-free survival (same as above)
-  Time-varying covariate:
-    tp = time until recovery of normal platelet level (in days)
-    deltap = recovery of normal platelet levels (0=no, 1 = yes)
+  There are two questions:
+      1. Outcome = disease-free survival (same as above)
+      Time-varying covariate:
+         tp = time until recovery of normal platelet level (in days)
+         deltap = recovery of normal platelet levels (0=no, 1=yes)
+      2. Outcome = relapse
+      Time-varying covariate:
+         tp = time until recovery of normal platelet level (in days)
+         deltap = recovery of normal platelet levels (0=no, 1=yes)
     
+    
+If we include an interaction in our model to account for age (of both donor and recipient), then which outcomes should we report?
+     1. Quantiles of age?
 
 ```{r generating_dataset}
 
@@ -403,16 +412,191 @@ luke.tvc = tmerge(data1=data,
                   deltadfs=event(tdfs, deltadfs),
                   post_tp=tdc(tp))
 
-#fitting TVC Cox PH model
+#fitting TVC Cox PH model with no covariates
 surv.luke.tvc <- Surv(luke.tvc$tstart, luke.tvc$tstop, luke.tvc$deltadfs)
 model.tvc <- coxph(surv.luke.tvc ~ post_tp, data=luke.tvc)
 
 summary(model.tvc)
 
 
+#fitting TVC Cox PH model with covariates
+model.tvc.cov <- coxph(surv.luke.tvc ~ post_tp + age + donorage + fab + male + donormale + waittime + cmv + donorcmv + mtx, data=luke.tvc)
+
+summary(model.tvc.cov)
+
+#with covariates by strata
+luke.tvc$new_age <- luke.tvc$age - 28
+luke.tvc$new_donorage <- luke.tvc$donorage - 28
+
+model.tvc.cov.strata <- coxph(surv.luke.tvc ~ post_tp + age + donorage*post_tp + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab), data=luke.tvc)
+
+summary(model.tvc.cov.strata)
+
+
+
+
+
+#I think this is the model I want to use
+model.tvc.cov.strata.2 <- coxph(surv.luke.tvc ~ post_tp + new_age*post_tp + new_donorage*post_tp + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab) + fab*post_tp, data=luke.tvc)
+
+summary(model.tvc.cov.strata.2)
+
+
+
+
+
+
+luke.tvc$fab_tp <- luke.tvc$fab*luke.tvc$post_tp
+luke.tvc$age_tp <- luke.tvc$age*luke.tvc$post_tp
+luke.tvc$donorage_tp <- luke.tvc$donorage*luke.tvc$post_tp
+luke.tvc$male_tp <- luke.tvc$male*luke.tvc$post_tp
+luke.tvc$donormale_tp <- luke.tvc$donormale*luke.tvc$post_tp
+luke.tvc$cmv_tp <- luke.tvc$cmv*luke.tvc$post_tp
+luke.tvc$donorcmv_tp <- luke.tvc$donorcmv*luke.tvc$post_tp
+luke.tvc$mtx_tp <- luke.tvc$mtx*luke.tvc$post_tp
+luke.tvc$waittime_tp <- luke.tvc$waittime*luke.tvc$post_tp
+
+#with interaction terms
+# model.tvc.int <- coxph(surv.luke.tvc ~ post_tp + fab_tp + age_tp + donorage_tp + male_tp + donormale_tp + cmv_tp + donorcmv_tp +mtx_tp + waittime_tp, data=luke.tvc)
+# 
+# summary(model.tvc.int)
+
+#better one with interaction terms
+model.tvc.int.2 <- coxph(surv.luke.tvc ~ post_tp + age*post_tp + donorage*post_tp + male*post_tp + donormale*post_tp + waittime*post_tp + cmv*post_tp + donorcmv*post_tp + mtx*post_tp + fab*post_tp, data=luke.tvc)
+
+summary(model.tvc.int.2)
+
+#stratified and interactions
+model.tvc.int.3 <- coxph(surv.luke.tvc ~ post_tp + age*post_tp + donorage*post_tp + male + donormale + waittime + cmv + donorcmv + mtx + fab, data=luke.tvc)
+
+summary(model.tvc.int.3)
+
 ```
 
-Based on the available data, recovery of normal platelet count is associated with a 72.1% (95% CI: 46.9-85.3%) lower hazard of relapse or death as compared to those whose platelet count did not return to normal. 
+
+```{r age_interaction}
+
+#we would have a different value for each age - I don't think that's worth reporting
+# est.age <- exp(coef(model.tvc.int.3)["post_tp"] + 
+#                  coef(model.tvc.int.3)["age"] +
+#                  coef(model.tvc.int.3)["post_tp:age"])
+# 
+# se.20 <- deltamethod(g=~exp(x1 + x2 + x15))
+# 
+
+```
+
+
+Based on the available data, without adjusting for any covariates, recovery of normal platelet count is associated with a 72.1% (95% CI: 46.9-85.3%) lower hazard of relapse or death as compared to those whose platelet count did not return to normal. 
+
+After adjusting for multiple covariates, recovery of normal platelet count is associated with a 70.2% (95% CI: 41.5-84.8%) lower hazard of relapse or death as compared to those whose platelet count did not return to normal. 
+
+If we adjust for cmv, donorcmv, and mtx by stratified PH models, then recovery of normal platelet count is associated with a 65.9% (95% CI: 24.7-84.5%) lower hazard of relapse or death as compared to those whose platelet count did not return to normal. 
+
+If we include age and donorage as interaction terms within our model, 
+
+
+```{r age_quantiles}
+
+library(gtools)
+luke.tvc$age_cat <- cut(luke.tvc$age, seq(0, 60, 10)) 
+luke.tvc$donorage_cat <- cut(luke.tvc$donorage, seq(0, 60, 10)) 
+
+#combining lowest and highest categories with cat next to them
+luke.tvc$age_cat <- cut(luke.tvc$age, c(0, 20, 30, 40, 60)) 
+luke.tvc$donorage_cat <- cut(luke.tvc$donorage, c(0, 20, 30, 40, 60)) 
+luke.tvc$age_bin <- as.numeric(luke.tvc$age_cat)
+luke.tvc$donorage_bin <- as.numeric(luke.tvc$donorage_cat)
+
+
+model.tvc.int.4 <- coxph(surv.luke.tvc ~ post_tp + age_cat*post_tp + donorage_cat*post_tp + male + donormale + waittime + cmv + donorcmv + mtx + fab, data=luke.tvc)
+
+summary(model.tvc.int.4)
+
+#age as a grouped linear predictor
+model.tvc.int.5 <- coxph(surv.luke.tvc ~ post_tp + age_bin*post_tp + donorage_bin*post_tp + male + donormale + waittime + cmv + donorcmv + mtx + fab, data=luke.tvc)
+
+summary(model.tvc.int.5)
+
+#creating a binary age factor - this doesn't seem to be significant
+luke.tvc$age_old <- ifelse(luke.tvc$age >28, 1, 0)
+luke.tvc$donorage_old <- ifelse(luke.tvc$donorage >28, 1, 0)
+
+model.tvc.int.6 <- coxph(surv.luke.tvc ~ post_tp + age*post_tp + donorage*post_tp + fab + male + donormale + waittime + cmv + donorcmv + mtx, data=luke.tvc)
+
+summary(model.tvc.int.6)
+
+
+```
+
+
+```{r}
+
+est.20 <- exp(coef(model.tvc.int.5)["post_tp"] + 
+                 coef(model.tvc.int.5)["post_tp:age_bin"])
+
+se.20 <- deltamethod(g=~exp((x1 + x2)),
+                     mean=coef(model.tvc.int.5)[c("post_tp", "post_tp:age_bin")],
+                     cov=vcov(model.tvc.int.5)[c("post_tp", "post_tp:age_bin"),
+                                               c("post_tp", "post_tp:age_bin")],
+                     ses=TRUE)
+
+#age group 20-30
+as.numeric(est.20)
+as.numeric(c(est.20 - 1.96*se.20,
+             est.20 + 1.96*se.20))
+
+
+est.30 <- exp(coef(model.tvc.int.5)["post_tp"] + 
+                 2*coef(model.tvc.int.5)["post_tp:age_bin"])
+
+se.30 <- deltamethod(g=~exp((x1 + 2*x2)),
+                     mean=coef(model.tvc.int.5)[c("post_tp", "post_tp:age_bin")],
+                     cov=vcov(model.tvc.int.5)[c("post_tp", "post_tp:age_bin"),
+                                               c("post_tp", "post_tp:age_bin")],
+                     ses=TRUE)
+
+#age group 30-40
+as.numeric(est.30)
+as.numeric(c(est.30 - 1.96*se.30,
+             est.30 + 1.96*se.30))
+
+
+est.40 <- exp(coef(model.tvc.int.5)["post_tp"] + 
+                 3*coef(model.tvc.int.5)["post_tp:age_bin"])
+
+se.40 <- deltamethod(g=~exp((x1 + 3*x2)),
+                     mean=coef(model.tvc.int.5)[c("post_tp", "post_tp:age_bin")],
+                     cov=vcov(model.tvc.int.5)[c("post_tp", "post_tp:age_bin"),
+                                               c("post_tp", "post_tp:age_bin")],
+                     ses=TRUE)
+
+#age group 40-50
+as.numeric(est.40)
+as.numeric(c(est.40 - 1.96*se.40,
+             est.40 + 1.96*se.40))
+
+
+est.50 <- exp(coef(model.tvc.int.5)["post_tp"] + 
+                 4*coef(model.tvc.int.5)["post_tp:age_bin"])
+
+se.50 <- deltamethod(g=~exp((x1 + 4*x2)),
+                     mean=coef(model.tvc.int.5)[c("post_tp", "post_tp:age_bin")],
+                     cov=vcov(model.tvc.int.5)[c("post_tp", "post_tp:age_bin"),
+                                               c("post_tp", "post_tp:age_bin")],
+                     ses=TRUE)
+
+#age group 20-30
+as.numeric(est.50)
+as.numeric(c(est.50 - 1.96*se.50,
+             est.50 + 1.96*se.50))
+
+
+
+
+
+```
+
 
 
 
