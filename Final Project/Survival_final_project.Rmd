@@ -2,9 +2,12 @@
 title: "Survival - Final Project"
 author: "David Coomes"
 date: "February 26, 2020"
-output: 
-   html_document:
-     theme: cosmo
+output:
+  word_document: default
+  html_document:
+    theme: cosmo
+  pdf_document: default
+always_allow_html: yes
 ---
 
 
@@ -80,7 +83,7 @@ surv.luke.1 <- Surv(time=data$tdfs, event=data$deltadfs, type="right")
 ```{r fit_parametric, include=FALSE}
 
 #fit KM curve
-survfit.luke.1 <- survfit(surv.luke.1 ~ 1, data=data, conf.type="log-log")
+survfit.luke.1 <- survfit(surv.luke.1 ~ 1, data=data, conf.type="log-log", conf.int=0.90)
 summary(survfit.luke.1)
 
 ```
@@ -152,7 +155,7 @@ covariates <- c("age", "male", "donorage", "donormale", "cmv", "donorcmv", "wait
 univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('surv.luke.1 ~', x)))
                         
-univ_models <- lapply(univ_formulas, function(x){coxph(x, data=data)})
+univ_models <- lapply(univ_formulas, function(x){coxph(x, data=data, ties="exact")})
 
 #get results
 univ_results <- lapply(univ_models,
@@ -186,6 +189,10 @@ kable(res, caption="Cox PH HR using univariate model")  %>%
 **Table 2: Baseline factor association with survival while adjusting for other baseline factors**
 
 ```{r fit_baseline, include=FALSE}
+
+data$new_age <- data$age - 28
+data$age_old <- ifelse(data$age > 28, 1, 0)
+data$donorage_old <- ifelse(data$donorage > 28, 1, 0)
 
 #first, fit a Cox PH model including all baseline covariates
 model.base.1 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx, data=data)
@@ -269,10 +276,34 @@ kable(est, caption="Cox PH HR using multivariate model")  %>%
 
 
 
+```{r AFT_model}
+
+aft.luke.1 <- flexsurvreg(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx, data=data, dist="gengamma")
+
+aft.luke.1
+
+aft.luke.est <- round(exp(aft.luke.1$res[4:13, 1:3]), 3)
+
+aft.luke.est %>%
+  kable(col.names = c("Estimate", "95% CI Lower", "95% CI Upper")) %>%
+  kable_styling(full_width = F,
+                position="left") %>%
+   row_spec(9:10, bold=T)
+
+
+```
+
+
+
 
 
 ```{r logrank_test, include=FALSE}
 
+
+data$waittime_long <- ifelse(data$waittime >178, 1 , 0)
+
+survdiff(surv.luke.1 ~ age_old, data=data, rho=0)          #p-value 0.1
+survdiff(surv.luke.1 ~ donorage_old, data=data, rho=0)     #p-value 0.7
 survdiff(surv.luke.1 ~ male, data=data, rho=0)             #p-value 0.3
 survdiff(surv.luke.1 ~ donormale, data=data, rho=0)        #        1
 survdiff(surv.luke.1 ~ disgroup, data=data, rho=0)         #        0.001**
@@ -280,6 +311,7 @@ survdiff(surv.luke.1 ~ cmv, data=data, rho=0)              #        0.5
 survdiff(surv.luke.1 ~ donorcmv, data=data, rho=0)         #        0.8
 survdiff(surv.luke.1 ~ fab, data=data, rho=0)              #        0.004**
 survdiff(surv.luke.1 ~ mtx, data=data, rho=0)              #        0.09*
+survdiff(surv.luke.1 ~ waittime_long, data=data, rho=0)    #        0.6
 
 ```
 
@@ -288,11 +320,15 @@ survdiff(surv.luke.1 ~ mtx, data=data, rho=0)              #        0.09*
 ```{r plot_one_NA_compare}
 
 survfit.luke.disgroup <- survfit(surv.luke.1 ~ disgroup, data=data, conf.type="log-log")
+
+#par(mfrow=c(2,2))
+
+
 plot(survfit.luke.disgroup,
      fun="cumhaz",
      col=c("blue", "red", "orange"), lwd=2, lty=c("solid", "solid", "dashed"),
      xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by disease group")
-legend("topleft", c("ALL", "AML low", "AML high"), col=c("blue", "red", "orange"), lwd=c(2,2,2), lty=c("solid", "solid", "dashed"))
+legend("bottomright", c("ALL", "AML low", "AML high"), col=c("blue", "red", "orange"), lwd=c(2,2,2), lty=c("solid", "solid", "dashed"))
 
 
 survfit.luke.fab <- survfit(surv.luke.1 ~ fab, data=data, conf.type="log-log")
@@ -300,7 +336,7 @@ plot(survfit.luke.fab,
      fun="cumhaz",
      col=c("blue", "red"), lwd=2, lty=c("solid", "solid"),
      xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by FAB")
-legend("topleft", c("FAB 4 or 5 & AML", "other"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "solid"))
+legend("bottomright", c("FAB 4 or 5 & AML", "other"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "solid"))
 
 
 survfit.luke.mtx <- survfit(surv.luke.1 ~ mtx, data=data, conf.type="log-log")
@@ -310,42 +346,155 @@ plot(survfit.luke.mtx,
      xlab="Time (in days)", ylab="Cumulative Hazard", main="Nelson-Aalen cumulative hazard estimates by MTX")
 legend("bottomright", c("No methotrexate use", "Methotrexate use"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "solid"))
 
+
+
 ```
 
 
 ```{r}
 
+par(mfrow=c(2, 2))
+
 #plot KM curve
+#age
+survfit.luke.age_old <- survfit(surv.luke.1 ~ age_old, data=data, conf.type="log-log")
+plot(survfit.luke.age_old,
+     conf.int=FALSE,
+     main="Age (p=0.1)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     cex.lab = 0.7,
+     xlab = "Time (days)",
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("Younger (28 and younger)", "Older (>28)"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+#sex
+survfit.luke.male <- survfit(surv.luke.1 ~ male, data=data, conf.type="log-log")
+plot(survfit.luke.male,
+     conf.int=FALSE,
+     main="Sex (p=0.3)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     cex.lab = 0.7,
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("Female", "Male"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+
+#donor age
+survfit.luke.donorage_old <- survfit(surv.luke.1 ~ donorage_old, data=data, conf.type="log-log")
+plot(survfit.luke.donorage_old,
+     conf.int=FALSE,
+     main="Age of donor (p=0.7)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     cex.lab = 0.7,
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("Younger (28 and younger)", "Older (>28)"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+#donor sex
+survfit.luke.donormale <- survfit(surv.luke.1 ~ donormale, data=data, conf.type="log-log")
+plot(survfit.luke.donormale,
+     conf.int=FALSE,
+     main="Sex of donor (p=1)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     cex.lab = 0.7,
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("Female", "Male"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+#cmv
+survfit.luke.cmv <- survfit(surv.luke.1 ~ cmv, data=data, conf.type="log-log")
+plot(survfit.luke.cmv,
+     conf.int=FALSE,
+     main="CMV (p=0.5)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     cex.lab = 0.7,
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("CMV negative", "CMV positive"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+#donor cmv
+survfit.luke.donorcmv <- survfit(surv.luke.1 ~ donorcmv, data=data, conf.type="log-log")
+plot(survfit.luke.donorcmv,
+     conf.int=FALSE,
+     main="CMV of donor (p=0.8)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     cex.lab = 0.7,
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("CMV negative", "CMV positive"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+#waittime
+survfit.luke.waittime_long <- survfit(surv.luke.1 ~ waittime_long, data=data, conf.type="log-log")
+plot(survfit.luke.waittime_long,
+     conf.int=FALSE,
+     main="Transplant wait time (p=0.6)",
+     #cex.main = 0.8,
+     ylab = "Survival probability",
+     xlab = "Time (days)",
+     cex.lab = 0.7,
+     col = c("blue", "red"),
+     lty = c("solid", "dashed"),
+     lwd = c(1,1))
+legend("topright", c("Short wait time (less than 178 days)", "Long wait time (>178 days"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+#disease group
 plot(survfit.luke.disgroup,
      conf.int=FALSE,
-     main="KM survival estimate by disease group",
+     main="Disease group (p=0.001*)",
+     #cex.main = 0.8,
      ylab = "Survival probability",
      xlab = "Time (days)",
+     cex.lab = 0.7,
      col = c("blue", "orange", "red"),
      lty = c("solid", "dashed", "solid"),
-     lwd = c(2,2,2))
-legend("topright", c("ALL", "AML low", "AML high"), col=c("blue", "orange", "red"), lwd=c(2,2,2), lty=c("solid", "dashed", "solid"))
+     lwd = c(1,1,1))
+legend("topright", c("ALL", "AML low", "AML high"), col=c("blue", "orange", "red"), lwd=c(2,2,2), lty=c("solid", "dashed", "solid"), cex=0.6)
 
-
+#FAB
 plot(survfit.luke.fab,
      conf.int=FALSE,
-     main="KM survival estimate by FAB classification",
+     main="FAB classification (p=0.004*)",
+     #cex.main = 0.8,
      ylab = "Survival probability",
      xlab = "Time (days)",
+     cex.lab = 0.7,
      col = c("blue", "red"),
      lty = c("solid", "dashed"),
-     lwd = c(2,2))
-legend("topright", c("FAB 4 or 5 & AML", "other"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"))
+     lwd = c(1,1))
+legend("topright", c("FAB 4 or 5 & AML", "other"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
 
+#MTX
 plot(survfit.luke.mtx,
      conf.int=FALSE,
-     main="KM survival estimate by Methotrexate use",
+     main="Methotrexate use (p=0.09*)",
+     #cex.main = 0.8,
      ylab = "Survival probability",
      xlab = "Time (days)",
+     cex.lab = 0.7,
      col = c("blue", "red"),
      lty = c("solid", "dashed"),
-     lwd = c(2,2))
-legend("topright", c("No methotrexate use", "Methotrexate use"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"))
+     lwd = c(1,1))
+legend("topright", c("No methotrexate use", "Methotrexate use"), col=c("blue", "red"), lwd=c(2,2), lty=c("solid", "dashed"), cex=0.6)
+
+
 
 ```
 
@@ -412,11 +561,25 @@ luke.tvc = tmerge(data1=data,
                   deltadfs=event(tdfs, deltadfs),
                   post_tp=tdc(tp))
 
+#setting up TVC dataset with risk of relapse as outcome
+luke.tvc.r = tmerge(data1=data,
+                  data2=data,
+                  id=id,
+                  deltadfs=event(tdfs, deltar),
+                  post_tp=tdc(tp))
+
+
+
 #fitting TVC Cox PH model with no covariates
 surv.luke.tvc <- Surv(luke.tvc$tstart, luke.tvc$tstop, luke.tvc$deltadfs)
 model.tvc <- coxph(surv.luke.tvc ~ post_tp, data=luke.tvc)
 
-summary(model.tvc)
+
+#with risk of relapse
+surv.luke.tvc.r <- Surv(luke.tvc.r$tstart, luke.tvc.r$tstop, luke.tvc.r$deltar)
+model.tvc.r <- coxph(surv.luke.tvc.r ~ post_tp, data=luke.tvc.r)
+
+#summary(model.tvc)
 
 
 #fitting TVC Cox PH model with covariates
@@ -437,10 +600,15 @@ summary(model.tvc.cov.strata)
 
 
 #I think this is the model I want to use
-model.tvc.cov.strata.2 <- coxph(surv.luke.tvc ~ post_tp + new_age*post_tp + new_donorage*post_tp + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab) + fab*post_tp, data=luke.tvc)
+model.tvc.cov.strata.2 <- coxph(surv.luke.tvc ~ post_tp + new_age*post_tp + new_donorage*post_tp + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab), data=luke.tvc)
 
 summary(model.tvc.cov.strata.2)
 
+
+#model with relapse as outcome
+model.tvc.cov.strata.r <- coxph(surv.luke.tvc.r ~ post_tp + new_age + new_donorage + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab), data=luke.tvc)
+
+summary(model.tvc.cov.strata.r)
 
 
 
@@ -496,7 +664,7 @@ If we adjust for cmv, donorcmv, and mtx by stratified PH models, then recovery o
 If we include age and donorage as interaction terms within our model, 
 
 
-```{r age_quantiles}
+```{r age_quantiles, include=FALSE}
 
 library(gtools)
 luke.tvc$age_cat <- cut(luke.tvc$age, seq(0, 60, 10)) 
@@ -611,4 +779,10 @@ summary(subset(luke.tvc, post_tp==1, select=c(tstart, tstop)))
 ```
 
 
+```{r write_output}
+
+output_filename <- ("results")
+output_path <- file.path("C:\\Users\\dcoomes\\Dropbox\\Classes\\survival", output_filename)
+
+```
 
