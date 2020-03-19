@@ -175,7 +175,7 @@ univ_results <- lapply(univ_models,
 res <- t(as.data.frame(univ_results, check.names=FALSE))
 
 #put results into a table
-kable(res, caption="Cox PH HR using univariate model")  %>%
+kable(res, caption="Cox PH HR using univariable models")  %>%
    kable_styling(bootstrap_options = "striped", full_width = FALSE, position="left") %>%
    column_spec(1, width="4cm") %>%
    row_spec(9:10, bold=T)
@@ -195,7 +195,7 @@ data$age_old <- ifelse(data$age > 28, 1, 0)
 data$donorage_old <- ifelse(data$donorage > 28, 1, 0)
 
 #first, fit a Cox PH model including all baseline covariates
-model.base.1 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx, data=data)
+model.base.1 <- coxph(surv.luke.1 ~ age + male + donorage + donormale + cmv + donorcmv + waittime + disgroup + fab + mtx, data=data, ties="exact")
 summary(model.base.1)
 
 #trying a Cox PH model that includes hospital as a stratified variable
@@ -267,7 +267,7 @@ est <- cbind(HR, conf.int.low, conf.int.high, p.value)
 names(est) <- c("HR", "HR 95% CI low", "HR 95% CI high", "p value")
 est <- round(est, digits=3)
 
-kable(est, caption="Cox PH HR using multivariate model")  %>%
+kable(est, caption="Cox PH HR using multivariable model")  %>%
    kable_styling(bootstrap_options = "striped", full_width = FALSE, position="left") %>%
    column_spec(1, width="4cm") %>%
    row_spec(9:10, bold=T)
@@ -353,7 +353,7 @@ legend("bottomright", c("No methotrexate use", "Methotrexate use"), col=c("blue"
 
 ```{r}
 
-par(mfrow=c(2, 2))
+par(mfrow=c(2, 3))
 
 #plot KM curve
 #age
@@ -561,6 +561,15 @@ luke.tvc = tmerge(data1=data,
                   deltadfs=event(tdfs, deltadfs),
                   post_tp=tdc(tp))
 
+
+#trying with delay
+luke.tvc.delay = tmerge(data1=data,
+                        data2=data,
+                        id=id,
+                        deltadfs=event(tdfs, deltadfs),
+                        post_tp=tdc(tp),
+                        options=list(delay=14))
+
 #setting up TVC dataset with risk of relapse as outcome
 luke.tvc.r = tmerge(data1=data,
                   data2=data,
@@ -581,6 +590,9 @@ model.tvc.r <- coxph(surv.luke.tvc.r ~ post_tp, data=luke.tvc.r)
 
 #summary(model.tvc)
 
+#with delay
+surv.luke.tvc.delay <- Surv(luke.tvc.delay$tstart, luke.tvc.delay$tstop, luke.tvc.delay$deltar)
+model.tvc.delay <- coxph(surv.luke.tvc.delay ~ post_tp, data=luke.tvc.delay)
 
 #fitting TVC Cox PH model with covariates
 model.tvc.cov <- coxph(surv.luke.tvc ~ post_tp + age + donorage + fab + male + donormale + waittime + cmv + donorcmv + mtx, data=luke.tvc)
@@ -603,6 +615,13 @@ summary(model.tvc.cov.strata)
 model.tvc.cov.strata.2 <- coxph(surv.luke.tvc ~ post_tp + new_age*post_tp + new_donorage*post_tp + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab), data=luke.tvc)
 
 summary(model.tvc.cov.strata.2)
+
+
+#model with delay
+model.tvc.cov.strata.delay <- coxph(surv.luke.tvc.delay ~ post_tp + new_age*post_tp + new_donorage*post_tp + male + donormale + waittime + strata(cmv) + strata(mtx)  + strata(donorcmv) + strata(fab), data=luke.tvc)
+
+summary(model.tvc.cov.strata.delay)
+
 
 
 #model with relapse as outcome
